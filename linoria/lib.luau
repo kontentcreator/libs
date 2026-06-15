@@ -28,7 +28,6 @@ local Library = {
     RegistryMap = {};
 
     HudRegistry = {};
-    Keybinds = {};
 
     FontColor = Color3.fromRGB(255, 255, 255);
     MainColor = Color3.fromRGB(28, 28, 28);
@@ -38,14 +37,10 @@ local Library = {
     RiskColor = Color3.fromRGB(255, 50, 50),
 
     Black = Color3.new(0, 0, 0);
-    Font = Enum.Font.GothamMedium,
-    TitleFont = Enum.Font.GothamMedium,
-
-    InactiveTabColor = Color3.fromRGB(150, 150, 150),
+    Font = Enum.Font.Code,
 
     OpenedFrames = {};
     DependencyBoxes = {};
-    DraggableExclusions = {};
 
     Signals = {};
     ScreenGui = ScreenGui;
@@ -169,135 +164,29 @@ end;
 function Library:MakeDraggable(Instance, Cutoff)
     Instance.Active = true;
 
-    local Dragging = false;
-    local DragOffset = Vector2.new(0, 0);
-    local DragInput = nil;
-    local OriginalTransparencies = {};
-
-    local function CacheTransparencies()
-        OriginalTransparencies = {};
-        for _, Desc in next, Instance:GetDescendants() do
-            local Cache = {};
-            if Desc:IsA('Frame') or Desc:IsA('ScrollingFrame') then
-                Cache.BackgroundTransparency = Desc.BackgroundTransparency;
-            elseif Desc:IsA('TextLabel') or Desc:IsA('TextBox') or Desc:IsA('TextButton') then
-                Cache.BackgroundTransparency = Desc.BackgroundTransparency;
-                Cache.TextTransparency = Desc.TextTransparency;
-            elseif Desc:IsA('ImageLabel') or Desc:IsA('ImageButton') then
-                Cache.BackgroundTransparency = Desc.BackgroundTransparency;
-                Cache.ImageTransparency = Desc.ImageTransparency;
-            elseif Desc:IsA('UIStroke') then
-                Cache.Transparency = Desc.Transparency;
-            end;
-            if next(Cache) then
-                OriginalTransparencies[Desc] = Cache;
-            end;
-        end;
-        OriginalTransparencies[Instance] = { BackgroundTransparency = Instance.BackgroundTransparency };
-    end;
-
-    local function ApplyGhosting()
-        if Instance:IsA("CanvasGroup") then
-            TweenService:Create(Instance, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {GroupTransparency = 0.6}):Play()
-            return
-        end
-
-        CacheTransparencies();
-        local GhostLevel = 0.6;
-        for Obj, Props in next, OriginalTransparencies do
-            if not Obj or not Obj.Parent then continue end;
-            local Goals = {};
-            for Prop, OrigVal in next, Props do
-                if OrigVal < GhostLevel then
-                    Goals[Prop] = GhostLevel;
-                end;
-            end;
-            if next(Goals) then
-                pcall(function()
-                    TweenService:Create(Obj, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), Goals):Play();
-                end);
-            end;
-        end;
-    end;
-
-    local function RemoveGhosting()
-        if Instance:IsA("CanvasGroup") then
-            TweenService:Create(Instance, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {GroupTransparency = 0}):Play()
-            return
-        end
-
-        for Obj, Props in next, OriginalTransparencies do
-            if not Obj or not Obj.Parent then continue end;
-            pcall(function()
-                TweenService:Create(Obj, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), Props):Play();
-            end);
-        end;
-        OriginalTransparencies = {};
-    end;
-
     Instance.InputBegan:Connect(function(Input)
-        if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-            local InputPos = Input.Position
-            if Library._TabButtons then
-                for _, btn in next, Library._TabButtons do
-                    if btn and btn.AbsolutePosition and btn.AbsoluteSize then
-                        local ap, as = btn.AbsolutePosition, btn.AbsoluteSize;
-                        if InputPos.X >= ap.X and InputPos.X <= ap.X + as.X
-                            and InputPos.Y >= ap.Y and InputPos.Y <= ap.Y + as.Y then
-                            return;
-                        end;
-                    end;
-                end;
-            end;
-
-            -- Block dragging when the input lands inside a registered exclusion (groupbox, tabbox)
-            if Library.DraggableExclusions then
-                for _, excl in next, Library.DraggableExclusions do
-                    if excl and excl.Parent and excl.Visible then
-                        local ap, as = excl.AbsolutePosition, excl.AbsoluteSize;
-                        if InputPos.X >= ap.X and InputPos.X <= ap.X + as.X
-                            and InputPos.Y >= ap.Y and InputPos.Y <= ap.Y + as.Y then
-                            return;
-                        end;
-                    end;
-                end;
-            end;
-
-            local FramePos = Instance.AbsolutePosition;
-            DragOffset = Vector2.new(InputPos.X - FramePos.X, InputPos.Y - FramePos.Y);
-
-            Dragging = true;
-            DragInput = Input;
-
-            ApplyGhosting();
-        end;
-    end);
-
-    Library:GiveSignal(InputService.InputChanged:Connect(function(Input)
-        if Dragging and (Input == DragInput or Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch) then
-            local InputPos = Input.Position
-            local TargetPos = UDim2.new(
-                0,
-                InputPos.X - DragOffset.X + (Instance.Size.X.Offset * Instance.AnchorPoint.X),
-                0,
-                InputPos.Y - DragOffset.Y + (Instance.Size.Y.Offset * Instance.AnchorPoint.Y)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local ObjPos = Vector2.new(
+                Mouse.X - Instance.AbsolutePosition.X,
+                Mouse.Y - Instance.AbsolutePosition.Y
             );
 
-            TweenService:Create(
-                Instance,
-                TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                { Position = TargetPos }
-            ):Play();
-        end;
-    end));
+            if ObjPos.Y > (Cutoff or 40) then
+                return;
+            end;
 
-    Library:GiveSignal(InputService.InputEnded:Connect(function(Input)
-        if Input == DragInput then
-            Dragging = false;
-            DragInput = nil;
-            RemoveGhosting();
+            while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
+                Instance.Position = UDim2.new(
+                    0,
+                    Mouse.X - ObjPos.X + (Instance.Size.X.Offset * Instance.AnchorPoint.X),
+                    0,
+                    Mouse.Y - ObjPos.Y + (Instance.Size.Y.Offset * Instance.AnchorPoint.Y)
+                );
+
+                RenderStepped:Wait();
+            end;
         end;
-    end));
+    end)
 end;
 
 function Library:AddToolTip(InfoStr, HoverInstance)
@@ -464,6 +353,16 @@ function Library:RemoveFromRegistry(Instance)
 end;
 
 function Library:UpdateColorsUsingRegistry()
+    -- TODO: Could have an 'active' list of objects
+    -- where the active list only contains Visible objects.
+
+    -- IMPL: Could setup .Changed events on the AddToRegistry function
+    -- that listens for the 'Visible' propert being changed.
+    -- Visible: true => Add to active list, and call UpdateColors function
+    -- Visible: false => Remove from active list.
+
+    -- The above would be especially efficient for a rainbow menu color or live color-changing.
+
     for Idx, Object in next, Library.Registry do
         for Property, ColorIdx in next, Object.Properties do
             if type(ColorIdx) == 'string' then
@@ -476,15 +375,18 @@ function Library:UpdateColorsUsingRegistry()
 end;
 
 function Library:GiveSignal(Signal)
+    -- Only used for signals not attached to library instances, as those should be cleaned up on object destruction by Roblox
     table.insert(Library.Signals, Signal)
 end
 
 function Library:Unload()
+    -- Unload all of the signals
     for Idx = #Library.Signals, 1, -1 do
         local Connection = table.remove(Library.Signals, Idx)
         Connection:Disconnect()
     end
 
+     -- Call our unload callback, maybe to undo some hooks etc
     if Library.OnUnload then
         Library.OnUnload()
     end
@@ -509,6 +411,7 @@ do
 
     function Funcs:AddColorPicker(Idx, Info)
         local ToggleLabel = self.TextLabel;
+        -- local Container = self.Container;
 
         assert(Info.Default, 'AddColorPicker: Missing default value.');
 
@@ -548,6 +451,12 @@ do
             Visible = not not Info.Transparency;
             Parent = DisplayFrame;
         });
+
+        -- 1/16/23
+        -- Rewrote this to be placed inside the Library ScreenGui
+        -- There was some issue which caused RelativeOffset to be way off
+        -- Thus the color picker would never show
+
         local PickerFrameOuter = Library:Create('Frame', {
             Name = 'Color';
             BackgroundColor3 = Color3.new(1, 1, 1);
@@ -1179,7 +1088,6 @@ do
         });
 
         local ContainerLabel = Library:CreateLabel({
-            Active = true;
             TextXAlignment = Enum.TextXAlignment.Left;
             Size = UDim2.new(1, 0, 0, 18);
             TextSize = 13;
@@ -1187,19 +1095,6 @@ do
             ZIndex = 110;
             Parent = Library.KeybindContainer;
         },  true);
-
-        ContainerLabel.InputBegan:Connect(function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-                KeyPicker.Toggled = not KeyPicker.Toggled;
-                KeyPicker:DoClick();
-                KeyPicker:Update();
-            end;
-        end);
-
-        if not Info.NoUI then
-            KeyPicker.ContainerLabel = ContainerLabel;
-            table.insert(Library.Keybinds, KeyPicker);
-        end;
 
         local Modes = Info.Modes or { 'Always', 'Toggle', 'Hold' };
         local ModeButtons = {};
@@ -1256,78 +1151,33 @@ do
             end;
 
             local State = KeyPicker:GetState();
-            local isNone = (KeyPicker.Value:lower() == 'none')
-            local shouldHide = isNone and (Toggles.OnlyShowBindedKeybinds and Toggles.OnlyShowBindedKeybinds.Value)
 
-            ContainerLabel.Text = string.format('%s / %s / %s', Info.Text, KeyPicker.Value, KeyPicker.Mode:lower());
+            ContainerLabel.Text = string.format('[%s] %s (%s)', KeyPicker.Value, Info.Text, KeyPicker.Mode);
 
+            ContainerLabel.Visible = true;
             ContainerLabel.TextColor3 = State and Library.AccentColor or Library.FontColor;
+
             Library.RegistryMap[ContainerLabel].Properties.TextColor3 = State and 'AccentColor' or 'FontColor';
 
-            local targetTextTrans = shouldHide and 1 or 0
-            local targetStrokeTrans = shouldHide and 1 or 0
-            local targetSize = shouldHide and UDim2.new(1, 0, 0, 0) or UDim2.new(1, 0, 0, 18)
+            local YSize = 0
+            local XSize = 0
 
-            local UIStroke = ContainerLabel:FindFirstChildOfClass('UIStroke')
-
-            if not KeyPicker.Initialized then
-                KeyPicker.Initialized = true;
-                ContainerLabel.Size = targetSize;
-                ContainerLabel.TextTransparency = targetTextTrans;
-                if UIStroke then
-                    UIStroke.Transparency = targetStrokeTrans;
-                end;
-                if not shouldHide then
-                    ContainerLabel.Visible = true;
-                end;
-            else
-                if not shouldHide then
-                    ContainerLabel.Visible = true;
-                end;
-
-                local TweenInfoObj = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out);
-                TweenService:Create(ContainerLabel, TweenInfoObj, {
-                    TextTransparency = targetTextTrans;
-                    Size = targetSize;
-                }):Play();
-
-                if UIStroke then
-                    TweenService:Create(UIStroke, TweenInfoObj, {
-                        Transparency = targetStrokeTrans;
-                    }):Play();
+            for _, Label in next, Library.KeybindContainer:GetChildren() do
+                if Label:IsA('TextLabel') and Label.Visible then
+                    YSize = YSize + 18;
+                    if (Label.TextBounds.X > XSize) then
+                        XSize = Label.TextBounds.X
+                    end
                 end;
             end;
 
-            local TargetYSize = 0
-            local TargetXSize = 0
-
-            for _, kp in next, Library.Keybinds do
-                local kpNone = (kp.Value:lower() == 'none')
-                local kpHide = kpNone and (Toggles.OnlyShowBindedKeybinds and Toggles.OnlyShowBindedKeybinds.Value)
-                if not kpHide then
-                    TargetYSize = TargetYSize + 18;
-                    local label = kp.ContainerLabel;
-                    if label then
-                        if (label.TextBounds.X > TargetXSize) then
-                            TargetXSize = label.TextBounds.X;
-                        end;
-                    end;
-                end;
-            end;
-
-            local TweenInfoObj = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out);
-            TweenService:Create(Library.KeybindFrame, TweenInfoObj, {
-                Size = UDim2.new(0, math.max(TargetXSize + 10, 210), 0, TargetYSize + 23)
-            }):Play();
+            Library.KeybindFrame.Size = UDim2.new(0, math.max(XSize + 10, 210), 0, YSize + 23)
         end;
 
         function KeyPicker:GetState()
             if KeyPicker.Mode == 'Always' then
                 return true;
             elseif KeyPicker.Mode == 'Hold' then
-                if KeyPicker.Toggled then
-                    return true;
-                end;
                 if KeyPicker.Value == 'None' then
                     return false;
                 end
@@ -1406,11 +1256,7 @@ do
                     local Key;
 
                     if Input.UserInputType == Enum.UserInputType.Keyboard then
-                        if Input.KeyCode == Enum.KeyCode.Backspace then
-                            Key = 'None';
-                        else
-                            Key = Input.KeyCode.Name;
-                        end;
+                        Key = Input.KeyCode.Name;
                     elseif Input.UserInputType == Enum.UserInputType.MouseButton1 then
                         Key = 'MB1';
                     elseif Input.UserInputType == Enum.UserInputType.MouseButton2 then
@@ -1425,8 +1271,6 @@ do
 
                     Library:SafeCallback(KeyPicker.ChangedCallback, Input.KeyCode or Input.UserInputType)
                     Library:SafeCallback(KeyPicker.Changed, Input.KeyCode or Input.UserInputType)
-
-                    KeyPicker:Update();
 
                     Library:AttemptSave();
 
@@ -1560,6 +1404,7 @@ do
     end;
 
     function Funcs:AddButton(...)
+        -- TODO: Eventually redo this
         local Button = {};
         local function ProcessButtonParams(Class, Obj, ...)
             local Props = select(1, ...)
@@ -2833,10 +2678,11 @@ do
     end;
 end;
 
+-- < Create other UI elements >
 do
     Library.NotificationArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
-        Position = UDim2.new(0.01, 0, 0, 40);
+        Position = UDim2.new(0, 0, 0, 40);
         Size = UDim2.new(0, 300, 0, 200);
         ZIndex = 100;
         Parent = ScreenGui;
@@ -2849,7 +2695,7 @@ do
         Parent = Library.NotificationArea;
     });
 
-    local WatermarkOuter = Library:Create('CanvasGroup', {
+    local WatermarkOuter = Library:Create('Frame', {
         BorderColor3 = Color3.new(0, 0, 0);
         Position = UDim2.new(0, 100, 0, -25);
         Size = UDim2.new(0, 213, 0, 20);
@@ -2899,7 +2745,6 @@ do
     });
 
     local WatermarkLabel = Library:CreateLabel({
-        RichText = true;
         Position = UDim2.new(0, 5, 0, 0);
         Size = UDim2.new(1, -4, 1, 0);
         TextSize = 14;
@@ -2914,7 +2759,7 @@ do
 
 
 
-    local KeybindOuter = Library:Create('CanvasGroup', {
+    local KeybindOuter = Library:Create('Frame', {
         AnchorPoint = Vector2.new(0, 0.5);
         BorderColor3 = Color3.new(0, 0, 0);
         Position = UDim2.new(0, 10, 0.5, 0);
@@ -2941,7 +2786,7 @@ do
     local ColorFrame = Library:Create('Frame', {
         BackgroundColor3 = Library.AccentColor;
         BorderSizePixel = 0;
-        Size = UDim2.new(0, 0, 0, 0);
+        Size = UDim2.new(1, 0, 0, 2);
         ZIndex = 102;
         Parent = KeybindInner;
     });
@@ -2952,31 +2797,18 @@ do
 
     local KeybindLabel = Library:CreateLabel({
         Size = UDim2.new(1, 0, 0, 20);
-        Position = UDim2.fromOffset(0, 0),
-        TextXAlignment = Enum.TextXAlignment.Center,
+        Position = UDim2.fromOffset(5, 2),
+        TextXAlignment = Enum.TextXAlignment.Left,
 
-        Text = 'catbinds';
+        Text = 'Keybinds';
         ZIndex = 104;
         Parent = KeybindInner;
     });
 
-    local KeybindLine = Library:Create('Frame', {
-        BackgroundColor3 = Library.AccentColor;
-        BorderSizePixel = 0;
-        Position = UDim2.new(0, 5, 0, 20);
-        Size = UDim2.new(1, -10, 0, 1);
-        ZIndex = 105;
-        Parent = KeybindInner;
-    });
-
-    Library:AddToRegistry(KeybindLine, {
-        BackgroundColor3 = 'AccentColor';
-    }, true);
-
     local KeybindContainer = Library:Create('Frame', {
         BackgroundTransparency = 1;
-        Size = UDim2.new(1, 0, 1, -22);
-        Position = UDim2.new(0, 0, 0, 22);
+        Size = UDim2.new(1, 0, 1, -20);
+        Position = UDim2.new(0, 0, 0, 20);
         ZIndex = 1;
         Parent = KeybindInner;
     });
@@ -3002,47 +2834,22 @@ function Library:SetWatermarkVisibility(Bool)
 end;
 
 function Library:SetWatermark(Text)
-    local CleanText = Text:gsub("<[^>]+>", "")
-    local X, Y = Library:GetTextBounds(CleanText, Library.Font, 14);
+    local X, Y = Library:GetTextBounds(Text, Library.Font, 14);
     Library.Watermark.Size = UDim2.new(0, X + 15, 0, (Y * 1.5) + 3);
-    
-    local isVisible = true
-    if Toggles.ShowWatermark and not Toggles.ShowWatermark.Value then
-        isVisible = false
-    end
-    Library:SetWatermarkVisibility(isVisible)
+    Library:SetWatermarkVisibility(true)
 
     Library.WatermarkText.Text = Text;
 end;
 
-function Library:Notify(PropertiesOrText, Time)
-    local Title = ""
-    local Text = ""
-    if type(PropertiesOrText) == 'table' then
-        Title = PropertiesOrText.Title or ""
-        Text = PropertiesOrText.Text or ""
-        Time = PropertiesOrText.Time or Time
-    else
-        Text = PropertiesOrText or ""
-    end
+function Library:Notify(Text, Time)
+    local XSize, YSize = Library:GetTextBounds(Text, Library.Font, 14);
 
-    local HasTitle = (Title ~= "")
-    local TitleX, TitleY = 0, 0
-    if HasTitle then
-        TitleX, TitleY = Library:GetTextBounds(Title, Library.Font, 14)
-    end
-    local TextX, TextY = Library:GetTextBounds(Text, Library.Font, 14)
-
-    local Width = math.max(TitleX, TextX) + 16
-    local Height = TextY + 8
-    if HasTitle then
-        Height = TitleY + TextY + 12
-    end
+    YSize = YSize + 7
 
     local NotifyOuter = Library:Create('Frame', {
         BorderColor3 = Color3.new(0, 0, 0);
         Position = UDim2.new(0, 100, 0, 10);
-        Size = UDim2.new(0, 0, 0, Height);
+        Size = UDim2.new(0, 0, 0, YSize);
         ClipsDescendants = true;
         ZIndex = 100;
         Parent = Library.NotificationArea;
@@ -3089,21 +2896,9 @@ function Library:Notify(PropertiesOrText, Time)
         end
     });
 
-    if HasTitle then
-        local TitleLabel = Library:CreateLabel({
-            Position = UDim2.new(0, 6, 0, 4);
-            Size = UDim2.new(1, -12, 0, TitleY);
-            Text = Title;
-            TextXAlignment = Enum.TextXAlignment.Left;
-            TextSize = 14;
-            ZIndex = 103;
-            Parent = InnerFrame;
-        });
-    end
-
     local NotifyLabel = Library:CreateLabel({
-        Position = HasTitle and UDim2.new(0, 6, 0, 4 + TitleY + 2) or UDim2.new(0, 6, 0, 0);
-        Size = HasTitle and UDim2.new(1, -12, 0, TextY) or UDim2.new(1, -12, 1, 0);
+        Position = UDim2.new(0, 4, 0, 0);
+        Size = UDim2.new(1, -4, 1, 0);
         Text = Text;
         TextXAlignment = Enum.TextXAlignment.Left;
         TextSize = 14;
@@ -3111,25 +2906,25 @@ function Library:Notify(PropertiesOrText, Time)
         Parent = InnerFrame;
     });
 
-    local TopColor = Library:Create('Frame', {
+    local LeftColor = Library:Create('Frame', {
         BackgroundColor3 = Library.AccentColor;
         BorderSizePixel = 0;
-        Position = UDim2.new(0, 0, 0, 0);
-        Size = UDim2.new(1, 0, 0, 2);
+        Position = UDim2.new(0, -1, 0, -1);
+        Size = UDim2.new(0, 3, 1, 2);
         ZIndex = 104;
         Parent = NotifyOuter;
     });
 
-    Library:AddToRegistry(TopColor, {
+    Library:AddToRegistry(LeftColor, {
         BackgroundColor3 = 'AccentColor';
     }, true);
 
-    pcall(NotifyOuter.TweenSize, NotifyOuter, UDim2.new(0, Width, 0, Height), 'Out', 'Quad', 0.4, true);
+    pcall(NotifyOuter.TweenSize, NotifyOuter, UDim2.new(0, XSize + 8 + 4, 0, YSize), 'Out', 'Quad', 0.4, true);
 
     task.spawn(function()
         wait(Time or 5);
 
-        pcall(NotifyOuter.TweenSize, NotifyOuter, UDim2.new(0, 0, 0, Height), 'Out', 'Quad', 0.4, true);
+        pcall(NotifyOuter.TweenSize, NotifyOuter, UDim2.new(0, 0, 0, YSize), 'Out', 'Quad', 0.4, true);
 
         wait(0.4);
 
@@ -3164,7 +2959,7 @@ function Library:CreateWindow(...)
         Tabs = {};
     };
 
-    local Outer = Library:Create('CanvasGroup', {
+    local Outer = Library:Create('Frame', {
         AnchorPoint = Config.AnchorPoint,
         BackgroundColor3 = Color3.new(0, 0, 0);
         BorderSizePixel = 0;
@@ -3196,49 +2991,29 @@ function Library:CreateWindow(...)
         Position = UDim2.new(0, 7, 0, 0);
         Size = UDim2.new(0, 0, 0, 25);
         Text = Config.Title or '';
-        Font = Library.TitleFont;
         TextXAlignment = Enum.TextXAlignment.Left;
-        ZIndex = 2;
+        ZIndex = 1;
         Parent = Inner;
     });
-
-    local TabArea = Library:Create('Frame', {
-        BackgroundTransparency = 1;
-        AnchorPoint = Vector2.new(1, 0);
-        Position = UDim2.new(1, -8, 0, 0);
-        Size = UDim2.new(0, 0, 0, 25);
-        ZIndex = 2;
-        Parent = Inner;
-    });
-
-    local TabListLayout = Library:Create('UIListLayout', {
-        Padding = UDim.new(0, Config.TabPadding);
-        FillDirection = Enum.FillDirection.Horizontal;
-        SortOrder = Enum.SortOrder.LayoutOrder;
-        HorizontalAlignment = Enum.HorizontalAlignment.Right;
-        Parent = TabArea;
-    });
-
-    TabListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
-        TabArea.Size = UDim2.new(0, TabListLayout.AbsoluteContentSize.X, 0, 25);
-    end);
 
     local MainSectionOuter = Library:Create('Frame', {
         BackgroundColor3 = Library.BackgroundColor;
-        BorderSizePixel = 0;
-        Position = UDim2.new(0, 0, 0, 25);
-        Size = UDim2.new(1, 0, 1, -25);
+        BorderColor3 = Library.OutlineColor;
+        Position = UDim2.new(0, 8, 0, 25);
+        Size = UDim2.new(1, -16, 1, -33);
         ZIndex = 1;
         Parent = Inner;
     });
 
     Library:AddToRegistry(MainSectionOuter, {
         BackgroundColor3 = 'BackgroundColor';
+        BorderColor3 = 'OutlineColor';
     });
 
     local MainSectionInner = Library:Create('Frame', {
         BackgroundColor3 = Library.BackgroundColor;
-        BorderSizePixel = 0;
+        BorderColor3 = Color3.new(0, 0, 0);
+        BorderMode = Enum.BorderMode.Inset;
         Position = UDim2.new(0, 0, 0, 0);
         Size = UDim2.new(1, 0, 1, 0);
         ZIndex = 1;
@@ -3249,20 +3024,35 @@ function Library:CreateWindow(...)
         BackgroundColor3 = 'BackgroundColor';
     });
 
+    local TabArea = Library:Create('Frame', {
+        BackgroundTransparency = 1;
+        Position = UDim2.new(0, 8, 0, 8);
+        Size = UDim2.new(1, -16, 0, 21);
+        ZIndex = 1;
+        Parent = MainSectionInner;
+    });
+
+    local TabListLayout = Library:Create('UIListLayout', {
+        Padding = UDim.new(0, Config.TabPadding);
+        FillDirection = Enum.FillDirection.Horizontal;
+        SortOrder = Enum.SortOrder.LayoutOrder;
+        Parent = TabArea;
+    });
+
     local TabContainer = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
-        BorderSizePixel = 0;
-        Position = UDim2.new(0, 0, 0, 0);
-        Size = UDim2.new(1, 0, 1, 0);
+        BorderColor3 = Library.OutlineColor;
+        Position = UDim2.new(0, 8, 0, 30);
+        Size = UDim2.new(1, -16, 1, -38);
         ZIndex = 2;
         Parent = MainSectionInner;
     });
     
+
     Library:AddToRegistry(TabContainer, {
         BackgroundColor3 = 'MainColor';
+        BorderColor3 = 'OutlineColor';
     });
-
-    Library._TabButtons = {};
 
     function Window:SetWindowTitle(Title)
         WindowLabel.Text = Title;
@@ -3277,27 +3067,38 @@ function Library:CreateWindow(...)
         local TabButtonWidth = Library:GetTextBounds(Name, Library.Font, 16);
 
         local TabButton = Library:Create('Frame', {
-            BackgroundTransparency = 1;
-            BorderSizePixel = 0;
+            BackgroundColor3 = Library.BackgroundColor;
+            BorderColor3 = Library.OutlineColor;
             Size = UDim2.new(0, TabButtonWidth + 8 + 4, 1, 0);
-            ZIndex = 2;
+            ZIndex = 1;
             Parent = TabArea;
         });
 
-        table.insert(Library._TabButtons, TabButton);
+        Library:AddToRegistry(TabButton, {
+            BackgroundColor3 = 'BackgroundColor';
+            BorderColor3 = 'OutlineColor';
+        });
 
         local TabButtonLabel = Library:CreateLabel({
             Position = UDim2.new(0, 0, 0, 0);
-            Size = UDim2.new(1, 0, 1, 0);
+            Size = UDim2.new(1, 0, 1, -1);
             Text = Name;
-            Font = Library.Font;
-            TextColor3 = Library.InactiveTabColor;
-            ZIndex = 2;
+            ZIndex = 1;
             Parent = TabButton;
         });
 
-        Library:AddToRegistry(TabButtonLabel, {
-            TextColor3 = 'InactiveTabColor';
+        local Blocker = Library:Create('Frame', {
+            BackgroundColor3 = Library.MainColor;
+            BorderSizePixel = 0;
+            Position = UDim2.new(0, 0, 1, 0);
+            Size = UDim2.new(1, 0, 0, 1);
+            BackgroundTransparency = 1;
+            ZIndex = 3;
+            Parent = TabButton;
+        });
+
+        Library:AddToRegistry(Blocker, {
+            BackgroundColor3 = 'MainColor';
         });
 
         local TabFrame = Library:Create('Frame', {
@@ -3363,14 +3164,16 @@ function Library:CreateWindow(...)
                 Tab:HideTab();
             end;
 
-            TabButtonLabel.TextColor3 = Library.AccentColor;
-            Library.RegistryMap[TabButtonLabel].Properties.TextColor3 = 'AccentColor';
+            Blocker.BackgroundTransparency = 0;
+            TabButton.BackgroundColor3 = Library.MainColor;
+            Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'MainColor';
             TabFrame.Visible = true;
         end;
 
         function Tab:HideTab()
-            TabButtonLabel.TextColor3 = Library.InactiveTabColor;
-            Library.RegistryMap[TabButtonLabel].Properties.TextColor3 = 'InactiveTabColor';
+            Blocker.BackgroundTransparency = 1;
+            TabButton.BackgroundColor3 = Library.BackgroundColor;
+            Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'BackgroundColor';
             TabFrame.Visible = false;
         end;
 
@@ -3384,7 +3187,6 @@ function Library:CreateWindow(...)
 
             local BoxOuter = Library:Create('Frame', {
                 BackgroundColor3 = Library.BackgroundColor;
-                BackgroundTransparency = 0.5;
                 BorderColor3 = Library.OutlineColor;
                 BorderMode = Enum.BorderMode.Inset;
                 Size = UDim2.new(1, 0, 0, 507 + 2);
@@ -3392,17 +3194,15 @@ function Library:CreateWindow(...)
                 Parent = Info.Side == 1 and LeftSide or RightSide;
             });
 
-            -- Register this groupbox frame so window dragging is blocked on it
-            table.insert(Library.DraggableExclusions, BoxOuter);
-
             Library:AddToRegistry(BoxOuter, {
+                BackgroundColor3 = 'BackgroundColor';
                 BorderColor3 = 'OutlineColor';
             });
 
             local BoxInner = Library:Create('Frame', {
                 BackgroundColor3 = Library.BackgroundColor;
-                BackgroundTransparency = 1;
                 BorderColor3 = Color3.new(0, 0, 0);
+                -- BorderMode = Enum.BorderMode.Inset;
                 Size = UDim2.new(1, -2, 1, -2);
                 Position = UDim2.new(0, 1, 0, 1);
                 ZIndex = 4;
@@ -3494,9 +3294,6 @@ function Library:CreateWindow(...)
                 Parent = Info.Side == 1 and LeftSide or RightSide;
             });
 
-            -- Register tabbox frame so window dragging is blocked on it
-            table.insert(Library.DraggableExclusions, BoxOuter);
-
             Library:AddToRegistry(BoxOuter, {
                 BackgroundColor3 = 'BackgroundColor';
                 BorderColor3 = 'OutlineColor';
@@ -3505,6 +3302,7 @@ function Library:CreateWindow(...)
             local BoxInner = Library:Create('Frame', {
                 BackgroundColor3 = Library.BackgroundColor;
                 BorderColor3 = Color3.new(0, 0, 0);
+                -- BorderMode = Enum.BorderMode.Inset;
                 Size = UDim2.new(1, -2, 1, -2);
                 Position = UDim2.new(0, 1, 0, 1);
                 ZIndex = 4;
@@ -3763,46 +3561,39 @@ function Library:CreateWindow(...)
             end);
         end;
 
-        if Outer:IsA("CanvasGroup") then
-            if Toggled then
-                Outer.GroupTransparency = 1
-            end
-            TweenService:Create(Outer, TweenInfo.new(FadeTime, Enum.EasingStyle.Linear), {GroupTransparency = Toggled and 0 or 1}):Play()
-        else
-            for _, Desc in next, Outer:GetDescendants() do
-                local Properties = {};
+        for _, Desc in next, Outer:GetDescendants() do
+            local Properties = {};
 
-                if Desc:IsA('ImageLabel') then
-                    table.insert(Properties, 'ImageTransparency');
-                    table.insert(Properties, 'BackgroundTransparency');
-                elseif Desc:IsA('TextLabel') or Desc:IsA('TextBox') then
-                    table.insert(Properties, 'TextTransparency');
-                elseif Desc:IsA('Frame') or Desc:IsA('ScrollingFrame') then
-                    table.insert(Properties, 'BackgroundTransparency');
-                elseif Desc:IsA('UIStroke') then
-                    table.insert(Properties, 'Transparency');
-                end;
-
-                local Cache = TransparencyCache[Desc];
-
-                if (not Cache) then
-                    Cache = {};
-                    TransparencyCache[Desc] = Cache;
-                end;
-
-                for _, Prop in next, Properties do
-                    if not Cache[Prop] then
-                        Cache[Prop] = Desc[Prop];
-                    end;
-
-                    if Cache[Prop] == 1 then
-                        continue;
-                    end;
-
-                    TweenService:Create(Desc, TweenInfo.new(FadeTime, Enum.EasingStyle.Linear), { [Prop] = Toggled and Cache[Prop] or 1 }):Play();
-                end;
+            if Desc:IsA('ImageLabel') then
+                table.insert(Properties, 'ImageTransparency');
+                table.insert(Properties, 'BackgroundTransparency');
+            elseif Desc:IsA('TextLabel') or Desc:IsA('TextBox') then
+                table.insert(Properties, 'TextTransparency');
+            elseif Desc:IsA('Frame') or Desc:IsA('ScrollingFrame') then
+                table.insert(Properties, 'BackgroundTransparency');
+            elseif Desc:IsA('UIStroke') then
+                table.insert(Properties, 'Transparency');
             end;
-        end
+
+            local Cache = TransparencyCache[Desc];
+
+            if (not Cache) then
+                Cache = {};
+                TransparencyCache[Desc] = Cache;
+            end;
+
+            for _, Prop in next, Properties do
+                if not Cache[Prop] then
+                    Cache[Prop] = Desc[Prop];
+                end;
+
+                if Cache[Prop] == 1 then
+                    continue;
+                end;
+
+                TweenService:Create(Desc, TweenInfo.new(FadeTime, Enum.EasingStyle.Linear), { [Prop] = Toggled and Cache[Prop] or 1 }):Play();
+            end;
+        end;
 
         task.wait(FadeTime);
 
@@ -3842,559 +3633,4 @@ Players.PlayerAdded:Connect(OnPlayerChange);
 Players.PlayerRemoving:Connect(OnPlayerChange);
 
 getgenv().Library = Library
-
-local httpService = game:GetService('HttpService')
-local ThemeManager = {} do
-	ThemeManager.Folder = 'LinoriaLibSettings'
-	-- if not isfolder(ThemeManager.Folder) then makefolder(ThemeManager.Folder) end
-
-	ThemeManager.Library = nil
-	ThemeManager.BuiltInThemes = {
-		['Catblox'] 		= { 1, httpService:JSONDecode('{"MainColor":"1e2030","AccentColor":"6e9ed7","OutlineColor":"323232","BackgroundColor":"0c1016","FontColor":"ffffff"}') },
-		['Evil Catblox'] 	= { 2, httpService:JSONDecode('{"MainColor":"301e1e","AccentColor":"d76e6e","OutlineColor":"323232","BackgroundColor":"2b1718","FontColor":"ffffff"}') },	
-	}
-
-	function ThemeManager:ApplyTheme(theme)
-		local customThemeData = self:GetCustomTheme(theme)
-		local data = customThemeData or self.BuiltInThemes[theme]
-
-		if not data then return end
-
-		-- custom themes are just regular dictionaries instead of an array with { index, dictionary }
-
-		local scheme = data[2]
-		for idx, col in next, customThemeData or scheme do
-			self.Library[idx] = Color3.fromHex(col)
-
-			if Options[idx] then
-				Options[idx]:SetValueRGB(Color3.fromHex(col))
-			end
-		end
-
-		self:ThemeUpdate()
-	end
-
-	function ThemeManager:ThemeUpdate()
-		-- This allows us to force apply themes without loading the themes tab :)
-		local options = { "FontColor", "MainColor", "AccentColor", "BackgroundColor", "OutlineColor" }
-		for i, field in next, options do
-			if Options and Options[field] then
-				self.Library[field] = Options[field].Value
-			end
-		end
-
-		self.Library.AccentColorDark = self.Library:GetDarkerColor(self.Library.AccentColor);
-		self.Library:UpdateColorsUsingRegistry()
-	end
-
-	function ThemeManager:LoadDefault()		
-		local theme = 'Default'
-		local content = isfile(self.Folder .. '/themes/default.txt') and readfile(self.Folder .. '/themes/default.txt')
-
-		local isDefault = true
-		if content then
-			if self.BuiltInThemes[content] then
-				theme = content
-			elseif self:GetCustomTheme(content) then
-				theme = content
-				isDefault = false;
-			end
-		elseif self.BuiltInThemes[self.DefaultTheme] then
-		 	theme = self.DefaultTheme
-		end
-
-		if isDefault then
-			Options.ThemeManager_ThemeList:SetValue(theme)
-		else
-			self:ApplyTheme(theme)
-		end
-	end
-
-	function ThemeManager:SaveDefault(theme)
-		writefile(self.Folder .. '/themes/default.txt', theme)
-	end
-
-	function ThemeManager:CreateThemeManager(groupbox)
-		groupbox:AddLabel('Background color'):AddColorPicker('BackgroundColor', { Default = self.Library.BackgroundColor });
-		groupbox:AddLabel('Main color')	:AddColorPicker('MainColor', { Default = self.Library.MainColor });
-		groupbox:AddLabel('Accent color'):AddColorPicker('AccentColor', { Default = self.Library.AccentColor });
-		groupbox:AddLabel('Outline color'):AddColorPicker('OutlineColor', { Default = self.Library.OutlineColor });
-		groupbox:AddLabel('Font color')	:AddColorPicker('FontColor', { Default = self.Library.FontColor });
-
-		local ThemesArray = {}
-		for Name, Theme in next, self.BuiltInThemes do
-			table.insert(ThemesArray, Name)
-		end
-
-		table.sort(ThemesArray, function(a, b) return self.BuiltInThemes[a][1] < self.BuiltInThemes[b][1] end)
-
-		groupbox:AddDivider()
-		groupbox:AddDropdown('ThemeManager_ThemeList', { Text = 'Theme list', Values = ThemesArray, Default = 1 })
-
-		groupbox:AddButton('Set as default', function()
-			self:SaveDefault(Options.ThemeManager_ThemeList.Value)
-			self.Library:Notify(string.format('Set default theme to %q', Options.ThemeManager_ThemeList.Value))
-		end)
-
-		Options.ThemeManager_ThemeList:OnChanged(function()
-			self:ApplyTheme(Options.ThemeManager_ThemeList.Value)
-		end)
-
-		groupbox:AddDivider()
-		groupbox:AddInput('ThemeManager_CustomThemeName', { Text = 'Custom theme name' })
-		groupbox:AddDropdown('ThemeManager_CustomThemeList', { Text = 'Custom themes', Values = self:ReloadCustomThemes(), AllowNull = true, Default = 1 })
-		groupbox:AddDivider()
-
-		groupbox:AddButton('Save theme', function() 
-			self:SaveCustomTheme(Options.ThemeManager_CustomThemeName.Value)
-
-			Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
-			Options.ThemeManager_CustomThemeList:SetValue(nil)
-		end):AddButton('Load theme', function() 
-			self:ApplyTheme(Options.ThemeManager_CustomThemeList.Value) 
-		end)
-
-		groupbox:AddButton('Refresh list', function()
-			Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
-			Options.ThemeManager_CustomThemeList:SetValue(nil)
-		end)
-
-		groupbox:AddButton('Set as default', function()
-			if Options.ThemeManager_CustomThemeList.Value ~= nil and Options.ThemeManager_CustomThemeList.Value ~= '' then
-				self:SaveDefault(Options.ThemeManager_CustomThemeList.Value)
-				self.Library:Notify(string.format('Set default theme to %q', Options.ThemeManager_CustomThemeList.Value))
-			end
-		end)
-
-		ThemeManager:LoadDefault()
-
-		local function UpdateTheme()
-			self:ThemeUpdate()
-		end
-
-		Options.BackgroundColor:OnChanged(UpdateTheme)
-		Options.MainColor:OnChanged(UpdateTheme)
-		Options.AccentColor:OnChanged(UpdateTheme)
-		Options.OutlineColor:OnChanged(UpdateTheme)
-		Options.FontColor:OnChanged(UpdateTheme)
-	end
-
-	function ThemeManager:GetCustomTheme(file)
-		local path = self.Folder .. '/themes/' .. file
-		if not isfile(path) then
-			return nil
-		end
-
-		local data = readfile(path)
-		local success, decoded = pcall(httpService.JSONDecode, httpService, data)
-
-		if not success then
-			return nil
-		end
-
-		return decoded
-	end
-
-	function ThemeManager:SaveCustomTheme(file)
-		if file:gsub(' ', '') == '' then
-			return self.Library:Notify('Invalid file name for theme (empty)', 3)
-		end
-
-		local theme = {}
-		local fields = { "FontColor", "MainColor", "AccentColor", "BackgroundColor", "OutlineColor" }
-
-		for _, field in next, fields do
-			theme[field] = Options[field].Value:ToHex()
-		end
-
-		writefile(self.Folder .. '/themes/' .. file .. '.json', httpService:JSONEncode(theme))
-	end
-
-	function ThemeManager:ReloadCustomThemes()
-		local list = listfiles(self.Folder .. '/themes')
-
-		local out = {}
-		for i = 1, #list do
-			local file = list[i]
-			if file:sub(-5) == '.json' then
-				-- i hate this but it has to be done ...
-
-				local pos = file:find('.json', 1, true)
-				local char = file:sub(pos, pos)
-
-				while char ~= '/' and char ~= '\\' and char ~= '' do
-					pos = pos - 1
-					char = file:sub(pos, pos)
-				end
-
-				if char == '/' or char == '\\' then
-					table.insert(out, file:sub(pos + 1))
-				end
-			end
-		end
-
-		return out
-	end
-
-	function ThemeManager:SetLibrary(lib)
-		self.Library = lib
-	end
-
-	function ThemeManager:BuildFolderTree()
-		local paths = {}
-
-		-- build the entire tree if a path is like some-hub/phantom-forces
-		-- makefolder builds the entire tree on Synapse X but not other exploits
-
-		local parts = self.Folder:split('/')
-		for idx = 1, #parts do
-			paths[#paths + 1] = table.concat(parts, '/', 1, idx)
-		end
-
-		table.insert(paths, self.Folder .. '/themes')
-		table.insert(paths, self.Folder .. '/settings')
-
-		for i = 1, #paths do
-			local str = paths[i]
-			if not isfolder(str) then
-				makefolder(str)
-			end
-		end
-	end
-
-	function ThemeManager:SetFolder(folder)
-		self.Folder = folder
-		self:BuildFolderTree()
-	end
-
-	function ThemeManager:CreateGroupBox(tab)
-		assert(self.Library, 'Must set ThemeManager.Library first!')
-		return tab:AddLeftGroupbox('Themes')
-	end
-
-	function ThemeManager:ApplyToTab(tab)
-		assert(self.Library, 'Must set ThemeManager.Library first!')
-		local groupbox = self:CreateGroupBox(tab)
-		self:CreateThemeManager(groupbox)
-	end
-
-	function ThemeManager:ApplyToGroupbox(groupbox)
-		assert(self.Library, 'Must set ThemeManager.Library first!')
-		self:CreateThemeManager(groupbox)
-	end
-
-	ThemeManager:BuildFolderTree()
-end
-
-local SaveManager = {} do
-	SaveManager.Folder = 'LinoriaLibSettings'
-	SaveManager.Ignore = {}
-	SaveManager.Parser = {
-		Toggle = {
-			Save = function(idx, object) 
-				return { type = 'Toggle', idx = idx, value = object.Value } 
-			end,
-			Load = function(idx, data)
-				if Toggles[idx] then 
-					Toggles[idx]:SetValue(data.value)
-				end
-			end,
-		},
-		Slider = {
-			Save = function(idx, object)
-				return { type = 'Slider', idx = idx, value = tostring(object.Value) }
-			end,
-			Load = function(idx, data)
-				if Options[idx] then 
-					Options[idx]:SetValue(data.value)
-				end
-			end,
-		},
-		Dropdown = {
-			Save = function(idx, object)
-				return { type = 'Dropdown', idx = idx, value = object.Value, mutli = object.Multi }
-			end,
-			Load = function(idx, data)
-				if Options[idx] then 
-					Options[idx]:SetValue(data.value)
-				end
-			end,
-		},
-		ColorPicker = {
-			Save = function(idx, object)
-				return { type = 'ColorPicker', idx = idx, value = object.Value:ToHex(), transparency = object.Transparency }
-			end,
-			Load = function(idx, data)
-				if Options[idx] then 
-					Options[idx]:SetValueRGB(Color3.fromHex(data.value), data.transparency)
-				end
-			end,
-		},
-		KeyPicker = {
-			Save = function(idx, object)
-				return { type = 'KeyPicker', idx = idx, mode = object.Mode, key = object.Value }
-			end,
-			Load = function(idx, data)
-				if Options[idx] then 
-					Options[idx]:SetValue({ data.key, data.mode })
-				end
-			end,
-		},
-
-		Input = {
-			Save = function(idx, object)
-				return { type = 'Input', idx = idx, text = object.Value }
-			end,
-			Load = function(idx, data)
-				if Options[idx] and type(data.text) == 'string' then
-					Options[idx]:SetValue(data.text)
-				end
-			end,
-		},
-	}
-
-	function SaveManager:SetIgnoreIndexes(list)
-		for _, key in next, list do
-			self.Ignore[key] = true
-		end
-	end
-
-	function SaveManager:SetFolder(folder)
-		self.Folder = folder;
-		self:BuildFolderTree()
-	end
-
-	function SaveManager:Save(name)
-		if (not name) then
-			return false, 'no config file is selected'
-		end
-
-		local fullPath = self.Folder .. '/settings/' .. name .. '.json'
-
-		local data = {
-			objects = {}
-		}
-
-		for idx, toggle in next, Toggles do
-			if self.Ignore[idx] then continue end
-
-			table.insert(data.objects, self.Parser[toggle.Type].Save(idx, toggle))
-		end
-
-		for idx, option in next, Options do
-			if not self.Parser[option.Type] then continue end
-			if self.Ignore[idx] then continue end
-
-			table.insert(data.objects, self.Parser[option.Type].Save(idx, option))
-		end	
-
-		local success, encoded = pcall(httpService.JSONEncode, httpService, data)
-		if not success then
-			return false, 'failed to encode data'
-		end
-
-		writefile(fullPath, encoded)
-		return true
-	end
-
-	function SaveManager:Load(name)
-		if (not name) then
-			return false, 'no config file is selected'
-		end
-
-		local file = self.Folder .. '/settings/' .. name .. '.json'
-		if not isfile(file) then return false, 'invalid file' end
-
-		local success, decoded = pcall(httpService.JSONDecode, httpService, readfile(file))
-		if not success then return false, 'decode error' end
-
-		for _, option in next, decoded.objects do
-			if self.Parser[option.type] then
-				task.spawn(function() self.Parser[option.type].Load(option.idx, option) end) -- task.spawn() so the config loading wont get stuck.
-			end
-		end
-
-		return true
-	end
-
-	function SaveManager:IgnoreThemeSettings()
-		self:SetIgnoreIndexes({ 
-			"BackgroundColor", "MainColor", "AccentColor", "OutlineColor", "FontColor", -- themes
-			"ThemeManager_ThemeList", 'ThemeManager_CustomThemeList', 'ThemeManager_CustomThemeName', -- themes
-		})
-	end
-
-	function SaveManager:BuildFolderTree()
-		local paths = {
-			self.Folder,
-			self.Folder .. '/themes',
-			self.Folder .. '/settings'
-		}
-
-		for i = 1, #paths do
-			local str = paths[i]
-			if not isfolder(str) then
-				makefolder(str)
-			end
-		end
-	end
-
-	function SaveManager:RefreshConfigList()
-		local list = listfiles(self.Folder .. '/settings')
-
-		local out = {}
-		for i = 1, #list do
-			local file = list[i]
-			if file:sub(-5) == '.json' then
-				-- i hate this but it has to be done ...
-
-				local pos = file:find('.json', 1, true)
-				local start = pos
-
-				local char = file:sub(pos, pos)
-				while char ~= '/' and char ~= '\\' and char ~= '' do
-					pos = pos - 1
-					char = file:sub(pos, pos)
-				end
-
-				if char == '/' or char == '\\' then
-					table.insert(out, file:sub(pos + 1, start - 1))
-				end
-			end
-		end
-
-		return out
-
-    end
-
-	function SaveManager:Delete(name)
-		if (not name) then
-			return false, 'no config file is selected'
-		end
-
-		local fullPath = self.Folder .. '/settings/' .. name .. '.json'
-		if isfile(fullPath) then
-			delfile(fullPath)
-			
-			local autoloadFile = self.Folder .. '/settings/autoload.txt'
-			if isfile(autoloadFile) and readfile(autoloadFile) == name then
-				delfile(autoloadFile)
-				if SaveManager.AutoloadLabel then
-					SaveManager.AutoloadLabel:SetText('Current autoload config: none')
-				end
-			end
-			
-			return true
-		else
-			return false, 'file does not exist'
-		end
-	end
-
-	function SaveManager:SetLibrary(library)
-		self.Library = library
-	end
-
-	function SaveManager:LoadAutoloadConfig()
-		if isfile(self.Folder .. '/settings/autoload.txt') then
-			local name = readfile(self.Folder .. '/settings/autoload.txt')
-
-			local success, err = self:Load(name)
-			if not success then
-				return self.Library:Notify('Failed to load autoload config: ' .. err)
-			end
-
-			self.Library:Notify(string.format('Auto loaded config %q', name))
-		end
-	end
-
-
-	function SaveManager:BuildConfigSection(tab)
-		assert(self.Library, 'Must set SaveManager.Library')
-
-		local section = tab:AddRightGroupbox('Configuration')
-
-		section:AddInput('SaveManager_ConfigName',    { Text = 'Config name' })
-		section:AddDropdown('SaveManager_ConfigList', { Text = 'Config list', Values = self:RefreshConfigList(), AllowNull = true })
-
-		section:AddDivider()
-
-		section:AddButton('Create config', function()
-			local name = Options.SaveManager_ConfigName.Value
-
-			if name:gsub(' ', '') == '' then 
-				return self.Library:Notify('Invalid config name (empty)', 2)
-			end
-
-			local success, err = self:Save(name)
-			if not success then
-				return self.Library:Notify('Failed to save config: ' .. err)
-			end
-
-			self.Library:Notify(string.format('Created config %q', name))
-
-			Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
-			Options.SaveManager_ConfigList:SetValue(nil)
-		end):AddButton('Load config', function()
-			local name = Options.SaveManager_ConfigList.Value
-
-			local success, err = self:Load(name)
-			if not success then
-				return self.Library:Notify('Failed to load config: ' .. err)
-			end
-
-			self.Library:Notify(string.format('Loaded config %q', name))
-		end)
-
-		section:AddButton('Overwrite config', function()
-			local name = Options.SaveManager_ConfigList.Value
-
-			local success, err = self:Save(name)
-			if not success then
-				return self.Library:Notify('Failed to overwrite config: ' .. err)
-			end
-
-			self.Library:Notify(string.format('Overwrote config %q', name))
-		end):AddButton('Delete config', function()
-			local name = Options.SaveManager_ConfigList.Value
-
-			local success, err = self:Delete(name)
-			if not success then
-				return self.Library:Notify('Failed to delete config: ' .. err)
-			end
-
-			self.Library:Notify(string.format('Deleted config %q', name))
-
-			Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
-			Options.SaveManager_ConfigList:SetValue(nil)
-		end)
-
-		section:AddButton('Refresh list', function()
-			Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
-			Options.SaveManager_ConfigList:SetValue(nil)
-		end)
-
-		section:AddButton('Set as autoload', function()
-			local name = Options.SaveManager_ConfigList.Value
-			writefile(self.Folder .. '/settings/autoload.txt', name)
-			SaveManager.AutoloadLabel:SetText('Current autoload config: ' .. name)
-			self.Library:Notify(string.format('Set %q to auto load', name))
-		end)
-
-		SaveManager.AutoloadLabel = section:AddLabel('Current autoload config: none', true)
-
-		if isfile(self.Folder .. '/settings/autoload.txt') then
-			local name = readfile(self.Folder .. '/settings/autoload.txt')
-			SaveManager.AutoloadLabel:SetText('Current autoload config: ' .. name)
-		end
-
-		SaveManager:SetIgnoreIndexes({ 'SaveManager_ConfigList', 'SaveManager_ConfigName' })
-	end
-
-	SaveManager:BuildFolderTree()
-end
-
-getgenv().ThemeManager = ThemeManager
-getgenv().SaveManager = SaveManager
-
-
-return Library, ThemeManager, SaveManager
+return Library
