@@ -1693,6 +1693,8 @@ do
 
             Button.Outer.InputBegan:Connect(function(Input)
                 if not ValidateClick(Input) then return end
+
+                if Button.Disabled then return end
  
                 if Button.Locked then return end
 
@@ -2164,6 +2166,7 @@ do
             MaxSize = 232;
             Type = 'Slider';
             Callback = Info.Callback or function(Value) end;
+            Disabled = Info.Disabled or false;
         };
 
         local Groupbox = self;
@@ -2233,6 +2236,10 @@ do
             ZIndex = 9;
             Parent = SliderInner;
         });
+        -- apply disabled visuals/state
+        SliderOuter.Active = not Slider.Disabled
+        DisplayLabel.TextTransparency = Slider.Disabled and 0.8 or 0
+        Fill.BackgroundTransparency = Slider.Disabled and 0.6 or 0
         Library:OnHighlight(SliderOuter, SliderOuter,
             { BorderColor3 = 'AccentColor' },
             { BorderColor3 = 'Black' }
@@ -2291,6 +2298,7 @@ do
             Library:SafeCallback(Slider.Changed, Slider.Value);
         end;
         SliderInner.InputBegan:Connect(function(Input)
+            if Slider.Disabled then return end
             if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and not Library:MouseIsOverOpenedFrame() then
                 
                 local function UpdateSlider(PosX)
@@ -2336,6 +2344,14 @@ do
         Groupbox:Resize();
 
         Options[Idx] = Slider;
+
+        function Slider:SetDisabled(Disabled)
+            Slider.Disabled = Disabled
+            SliderOuter.Active = not Disabled
+            DisplayLabel.TextTransparency = Disabled and 0.8 or 0
+            Fill.BackgroundTransparency = Disabled and 0.6 or 0
+            return Slider
+        end;
 
         return Slider;
     end;
