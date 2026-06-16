@@ -2569,13 +2569,11 @@ do
 
             for Idx, Value in next, Values do
                 local FormattedValue = tostring(Value)
-                if SearchBox and (SearchBox.Text or '') ~= '' and not FormattedValue:lower():match((SearchBox.Text or ''):lower()) then
-                    continue
-                end
-                local Table = {};
-                Count = Count + 1;
+                if not (SearchBox and (SearchBox.Text or '') ~= '' and not FormattedValue:lower():match((SearchBox.Text or ''):lower())) then
+                    local Table = {};
+                    Count = Count + 1;
 
-                local Button = Library:Create('Frame', {
+                    local Button = Library:Create('Frame', {
                     BackgroundColor3 = Library.MainColor;
                     BorderColor3 = Library.OutlineColor;
                     BorderMode = Enum.BorderMode.Middle;
