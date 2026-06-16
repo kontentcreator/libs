@@ -1680,6 +1680,7 @@ do
             end
 
             local function ValidateClick(Input)
+                if Button.Disabled then return false end
                 if Library:MouseIsOverOpenedFrame() then
                     return false
                 end
@@ -1727,6 +1728,9 @@ do
         end
 
         Button.Outer, Button.Inner, Button.Label = CreateBaseButton(Button)
+        -- apply initial disabled visuals if provided
+        Button.Outer.Active = not Button.Disabled
+        Button.Label.TextTransparency = Button.Disabled and 0.8 or 0
         Button.Outer.Parent = Container
 
         InitEvents(Button)
