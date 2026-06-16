@@ -2524,22 +2524,35 @@ do
             end)
         end
         function Dropdown:Display()
-            local Values = Dropdown.Values;
-            local Str = '';
+            local Str = ''
+            local ValueImage = nil
 
             if Info.Multi then
-                for Idx, Value in next, Values do
+                for _, Value in next, Dropdown.Values do
                     if Dropdown.Value[Value] then
-                        Str = Str .. Value .. ', ';
-                    end;
-                end;
+                        if not ValueImage then
+                            ValueImage = GetValueImage(Value)
+                        end
 
-                Str = Str:sub(1, #Str - 2);
+                        Str = Str .. (Info.FormatDisplayValue and tostring(Info.FormatDisplayValue(Value)) or tostring(Value)) .. ', '
+                    end
+                end
+
+                Str = Str:sub(1, #Str - 2)
             else
-                Str = Dropdown.Value or '';
-            end;
+                ValueImage = GetValueImage(Dropdown.Value)
+                Str = Dropdown.Value and tostring(Dropdown.Value) or ''
 
-            ItemList.Text = (Str == '' and '--' or Str);
+                if Str ~= '' and Info.FormatDisplayValue then
+                    Str = tostring(Info.FormatDisplayValue(Str))
+                end
+            end
+
+            if #Str > 25 then
+                Str = Str:sub(1, 22) .. '...'
+            end
+
+            ItemList.Text = (Str == '' and '--' or Str)
         end;
         function Dropdown:GetActiveValues()
             if Info.Multi then
@@ -2567,7 +2580,7 @@ do
             local Count = 0;
 
             for Idx, Value in next, Values do
-                local FormattedValue = tostring(Value)
+                local FormattedValue = tostring(Info.FormatListValue and Info.FormatListValue(Value) or Value)
                 local skip = false
                 if SearchBox and (SearchBox.Text or '') ~= '' and not FormattedValue:lower():match((SearchBox.Text or ''):lower()) then
                     skip = true
@@ -2577,14 +2590,14 @@ do
                     Count = Count + 1;
 
                     local Button = Library:Create('Frame', {
-                    BackgroundColor3 = Library.MainColor;
-                    BorderColor3 = Library.OutlineColor;
-                    BorderMode = Enum.BorderMode.Middle;
-                    Size = UDim2.new(1, -1, 0, 20);
-                    ZIndex = 23;
-                    Active = true,
-                    Parent = Scrolling;
-                });
+                        BackgroundColor3 = Library.MainColor;
+                        BorderColor3 = Library.OutlineColor;
+                        BorderMode = Enum.BorderMode.Middle;
+                        Size = UDim2.new(1, -1, 0, 20);
+                        ZIndex = 23;
+                        Active = true,
+                        Parent = Scrolling;
+                    });
                 Library:AddToRegistry(Button, {
                     BackgroundColor3 = 'MainColor';
                     BorderColor3 = 'OutlineColor';
@@ -2594,7 +2607,7 @@ do
                     Size = UDim2.new(1, -6, 1, 0);
                     Position = UDim2.new(0, 6, 0, 0);
                     TextSize = Library.FontSize;
-                    Text = Value;
+                    Text = FormattedValue;
                     TextXAlignment = Enum.TextXAlignment.Left;
                     ZIndex = 25;
                     Parent = Button;
