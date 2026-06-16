@@ -2524,35 +2524,22 @@ do
             end)
         end
         function Dropdown:Display()
-            local Str = ''
-            local ValueImage = nil
+            local Values = Dropdown.Values;
+            local Str = '';
 
             if Info.Multi then
-                for _, Value in next, Dropdown.Values do
+                for Idx, Value in next, Values do
                     if Dropdown.Value[Value] then
-                        if not ValueImage then
-                            ValueImage = GetValueImage(Value)
-                        end
+                        Str = Str .. Value .. ', ';
+                    end;
+                end;
 
-                        Str = Str .. (Info.FormatDisplayValue and tostring(Info.FormatDisplayValue(Value)) or tostring(Value)) .. ', '
-                    end
-                end
-
-                Str = Str:sub(1, #Str - 2)
+                Str = Str:sub(1, #Str - 2);
             else
-                ValueImage = GetValueImage(Dropdown.Value)
-                Str = Dropdown.Value and tostring(Dropdown.Value) or ''
+                Str = Dropdown.Value or '';
+            end;
 
-                if Str ~= '' and Info.FormatDisplayValue then
-                    Str = tostring(Info.FormatDisplayValue(Str))
-                end
-            end
-
-            if #Str > 25 then
-                Str = Str:sub(1, 22) .. '...'
-            end
-
-            ItemList.Text = (Str == '' and '--' or Str)
+            ItemList.Text = (Str == '' and '--' or Str);
         end;
         function Dropdown:GetActiveValues()
             if Info.Multi then
