@@ -3999,9 +3999,12 @@ if InputService.TouchEnabled then
 
     local _origUpdate = Library.UpdateColorsUsingRegistry
     Library.UpdateColorsUsingRegistry = function(self)
-end
         _origUpdate(self)
     end
+end
+end
+
+-- ensure all blocks closed
 end
 
 getgenv().Library = Library
