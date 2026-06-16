@@ -4002,9 +4002,6 @@ if InputService.TouchEnabled then
         _origUpdate(self)
     end
 end
-end
-end
-end
 
 getgenv().Library = Library
 return Library
