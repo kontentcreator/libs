@@ -2362,8 +2362,6 @@ do
             Type = 'Dropdown';
             SpecialType = Info.SpecialType;
             Callback = Info.Callback or function(Value) end;
-            Disabled = Info.Disabled or false;
-            Visible = (Info.Visible == nil) and true or Info.Visible;
         };
 
         local Groupbox = self;
@@ -2396,7 +2394,6 @@ do
             ZIndex = 5;
             Parent = Container;
         });
-        DropdownOuter.Visible = Dropdown.Visible;
         Library:AddToRegistry(DropdownOuter, {
             BorderColor3 = 'Black';
         });
@@ -2679,47 +2676,16 @@ do
             Dropdown:BuildDropdownList();
         end;
 
-        function Dropdown:SetDisabled(Disabled)
-            Dropdown.Disabled = Disabled
-            DropdownOuter.Active = not Disabled
-            if Disabled then
-                Dropdown:CloseDropdown()
-            end
-        end
-
-        function Dropdown:SetVisible(Visible)
-            Dropdown.Visible = Visible
-            DropdownOuter.Visible = Visible
-            Groupbox:Resize()
-        end
-
-        function Dropdown:SetText(Text)
-            Dropdown.Text = Text
-            ItemList.Text = Text
-        end
-
-        function Dropdown:UpdateColors()
-            -- placeholder for API parity; color updates are handled globally
-        end
-
         function Dropdown:OpenDropdown()
             ListOuter.Visible = true;
             Library.OpenedFrames[ListOuter] = true;
             DropdownArrow.Rotation = 180;
-            if SearchBox then
-                SearchBox.Text = ''
-                SearchBox.Visible = true
-            end
         end;
 
         function Dropdown:CloseDropdown()
             ListOuter.Visible = false;
             Library.OpenedFrames[ListOuter] = nil;
             DropdownArrow.Rotation = 0;
-            if SearchBox then
-                SearchBox.Text = ''
-                SearchBox.Visible = false
-            end
         end;
 
         function Dropdown:OnChanged(Func)
