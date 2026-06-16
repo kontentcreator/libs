@@ -2685,20 +2685,12 @@ do
             ListOuter.Visible = true;
             Library.OpenedFrames[ListOuter] = true;
             DropdownArrow.Rotation = 180;
-            if SearchBox then
-                SearchBox.Text = ''
-                SearchBox.Visible = true
-            end
         end;
 
         function Dropdown:CloseDropdown()
             ListOuter.Visible = false;
             Library.OpenedFrames[ListOuter] = nil;
             DropdownArrow.Rotation = 0;
-            if SearchBox then
-                SearchBox.Text = ''
-                SearchBox.Visible = false
-            end
         end;
 
         function Dropdown:OnChanged(Func)
