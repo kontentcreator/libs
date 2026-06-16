@@ -1760,12 +1760,58 @@ do
                 SubButton:AddTooltip(SubButton.Tooltip)
             end
 
+            -- SubButton public APIs
+            function SubButton:SetDisabled(Disabled)
+                SubButton.Disabled = Disabled
+                SubButton.Outer.Active = not Disabled
+                SubButton.Label.TextTransparency = Disabled and 0.8 or 0
+                return SubButton
+            end
+
+            function SubButton:SetVisible(Visible)
+                SubButton.Outer.Visible = Visible
+                return SubButton
+            end
+
+            function SubButton:SetText(Text)
+                SubButton.Text = Text
+                SubButton.Label.Text = Text
+                return SubButton
+            end
+
+            function SubButton:UpdateColors()
+            end
+
             InitEvents(SubButton)
             return SubButton
         end
 
         if type(Button.Tooltip) == 'string' then
             Button:AddTooltip(Button.Tooltip)
+        end
+
+        -- Public APIs for Button
+        function Button:SetDisabled(Disabled)
+            Button.Disabled = Disabled
+            Button.Outer.Active = not Disabled
+            Button.Label.TextTransparency = Disabled and 0.8 or 0
+            return Button
+        end
+
+        function Button:SetVisible(Visible)
+            Button.Outer.Visible = Visible
+            Groupbox:Resize()
+            return Button
+        end
+
+        function Button:SetText(Text)
+            Button.Text = Text
+            Button.Label.Text = Text
+            return Button
+        end
+
+        function Button:UpdateColors()
+            -- kept for API parity with obsidian; library-wide color updates handle visuals
         end
 
         Groupbox:AddBlank(5);
@@ -2316,6 +2362,8 @@ do
             Type = 'Dropdown';
             SpecialType = Info.SpecialType;
             Callback = Info.Callback or function(Value) end;
+            Disabled = Info.Disabled or false;
+            Visible = (Info.Visible == nil) and true or Info.Visible;
         };
 
         local Groupbox = self;
@@ -2348,6 +2396,7 @@ do
             ZIndex = 5;
             Parent = Container;
         });
+        DropdownOuter.Visible = Dropdown.Visible;
         Library:AddToRegistry(DropdownOuter, {
             BorderColor3 = 'Black';
         });
@@ -2456,6 +2505,25 @@ do
             SortOrder = Enum.SortOrder.LayoutOrder;
             Parent = Scrolling;
         });
+        -- optional search box for dropdowns
+        local SearchBox
+        if Info.Searchable then
+            SearchBox = Library:Create('TextBox', {
+                BackgroundTransparency = 1;
+                PlaceholderText = 'Search...';
+                Position = UDim2.fromOffset(4, 4);
+                Size = UDim2.new(1, -8, 0, 18);
+                TextSize = Library.FontSize;
+                TextXAlignment = Enum.TextXAlignment.Left;
+                Visible = false;
+                ZIndex = 22;
+                Parent = ListInner;
+            });
+            -- rebuild list when search text changes
+            SearchBox:GetPropertyChangedSignal('Text'):Connect(function()
+                Dropdown:BuildDropdownList();
+            end)
+        end
         function Dropdown:Display()
             local Values = Dropdown.Values;
             local Str = '';
@@ -2500,6 +2568,10 @@ do
             local Count = 0;
 
             for Idx, Value in next, Values do
+                local FormattedValue = tostring(Value)
+                if SearchBox and (SearchBox.Text or '') ~= '' and not FormattedValue:lower():match((SearchBox.Text or ''):lower()) then
+                    continue
+                end
                 local Table = {};
                 Count = Count + 1;
 
@@ -2607,16 +2679,47 @@ do
             Dropdown:BuildDropdownList();
         end;
 
+        function Dropdown:SetDisabled(Disabled)
+            Dropdown.Disabled = Disabled
+            DropdownOuter.Active = not Disabled
+            if Disabled then
+                Dropdown:CloseDropdown()
+            end
+        end
+
+        function Dropdown:SetVisible(Visible)
+            Dropdown.Visible = Visible
+            DropdownOuter.Visible = Visible
+            Groupbox:Resize()
+        end
+
+        function Dropdown:SetText(Text)
+            Dropdown.Text = Text
+            ItemList.Text = Text
+        end
+
+        function Dropdown:UpdateColors()
+            -- placeholder for API parity; color updates are handled globally
+        end
+
         function Dropdown:OpenDropdown()
             ListOuter.Visible = true;
             Library.OpenedFrames[ListOuter] = true;
             DropdownArrow.Rotation = 180;
+            if SearchBox then
+                SearchBox.Text = ''
+                SearchBox.Visible = true
+            end
         end;
 
         function Dropdown:CloseDropdown()
             ListOuter.Visible = false;
             Library.OpenedFrames[ListOuter] = nil;
             DropdownArrow.Rotation = 0;
+            if SearchBox then
+                SearchBox.Text = ''
+                SearchBox.Visible = false
+            end
         end;
 
         function Dropdown:OnChanged(Func)
