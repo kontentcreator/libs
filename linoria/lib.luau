@@ -2360,9 +2360,11 @@ do
             Value = Info.Multi and {};
             Multi = Info.Multi;
             Searchable = Info.Searchable;
+            
             Type = 'Dropdown';
             SpecialType = Info.SpecialType;
             Callback = Info.Callback or function(Value) end;
+            Disabled = Info.Disabled or false;
 
         };
 
@@ -2439,6 +2441,10 @@ do
             ZIndex = 7;
             Parent = DropdownInner;
         });
+        -- apply disabled visuals/state
+        DropdownOuter.Active = not Dropdown.Disabled
+        ItemList.TextTransparency = Dropdown.Disabled and 0.8 or 0
+        DropdownArrow.ImageTransparency = Dropdown.Disabled and 0.6 or 0
         Library:OnHighlight(DropdownOuter, DropdownOuter,
             { BorderColor3 = 'AccentColor' },
             { BorderColor3 = 'Black' }
@@ -2582,7 +2588,7 @@ do
                     BorderMode = Enum.BorderMode.Middle;
                     Size = UDim2.new(1, -1, 0, 20);
                     ZIndex = 23;
-                    Active = true,
+                        Active = not Dropdown.Disabled,
                     Parent = Scrolling;
                 });
                 Library:AddToRegistry(Button, {
@@ -2599,6 +2605,7 @@ do
                     ZIndex = 25;
                     Parent = Button;
                 });
+                ButtonLabel.TextTransparency = Dropdown.Disabled and 0.8 or 0
 
                 Library:OnHighlight(Button, Button,
                     { BorderColor3 = 'AccentColor', ZIndex = 24 },
@@ -2623,6 +2630,7 @@ do
                     Library.RegistryMap[ButtonLabel].Properties.TextColor3 = Selected and 'AccentColor' or 'FontColor';
                 end;
                 ButtonLabel.InputBegan:Connect(function(Input)
+                    if Dropdown.Disabled then return end
                     if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then
                         local Try = not Selected;
 
@@ -2722,7 +2730,20 @@ do
             Library:SafeCallback(Dropdown.Changed, Dropdown.Value);
         end;
 
+        function Dropdown:SetDisabled(Disabled)
+            Dropdown.Disabled = Disabled
+            DropdownOuter.Active = not Disabled
+            ItemList.TextTransparency = Disabled and 0.8 or 0
+            DropdownArrow.ImageTransparency = Disabled and 0.6 or 0
+            if Disabled then
+                Dropdown:CloseDropdown()
+            end
+            Dropdown:BuildDropdownList()
+            return Dropdown
+        end;
+
         DropdownOuter.InputBegan:Connect(function(Input)
+            if Dropdown.Disabled then return end
             if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and not Library:MouseIsOverOpenedFrame() then
                 if ListOuter.Visible then
                     Dropdown:CloseDropdown();
@@ -3864,7 +3885,7 @@ if InputService.TouchEnabled then
             Parent           = Outer,
         })
         Library:AddToRegistry(AccentFrame, { BackgroundColor3 = 'AccentColor' })
-
+d
         local Inner = Library:Create('Frame', {
             Name             = name .. "Inner",
             BackgroundColor3 = Color3.fromRGB(8, 8, 12),
