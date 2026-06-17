@@ -423,21 +423,34 @@ function Library:GetTextBounds(Text, Font, Size, Resolution)
     -- Accept either a Vector2 `Resolution` (legacy linoria usage)
     -- or a numeric `Width` (obsidian usage). Fall back to screen size when missing.
     if type(Resolution) == 'number' then
-        -- If Font is an Enum.Font (EnumItem), use GetTextSize with a Vector2 sized width
-        if typeof(Font) == 'EnumItem' then
-            local Bounds = TextService:GetTextSize(Text, Size, Font, Vector2.new(Resolution, math.huge))
+        -- Try GetTextBoundsAsync first (works with Font objects), fall back to GetTextSize.
+        local ok, Bounds = pcall(function()
+            local Params = Instance.new('GetTextBoundsParams')
+            Params.Text = Text
+            Params.RichText = true
+            Params.Font = Font
+            Params.Size = Size
+            Params.Width = Resolution or (workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize.X - 32) or 1920
+
+            return TextService:GetTextBoundsAsync(Params)
+        end)
+
+        if ok and Bounds then
             return Bounds.X, Bounds.Y
         end
 
-        local Params = Instance.new('GetTextBoundsParams')
-        Params.Text = Text
-        Params.RichText = true
-        Params.Font = Font
-        Params.Size = Size
-        Params.Width = Resolution or (workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize.X - 32) or 1920
+        -- Fallback: try GetTextSize with a Vector2 width (works with Enum.Font)
+        local ok2, Bounds2 = pcall(function()
+            return TextService:GetTextSize(Text, Size, Font, Vector2.new(Resolution, math.huge))
+        end)
 
-        local Bounds = TextService:GetTextBoundsAsync(Params)
-        return Bounds.X, Bounds.Y
+        if ok2 and Bounds2 then
+            return Bounds2.X, Bounds2.Y
+        end
+
+        -- Ultimate fallback to default GetTextSize call
+        local Bounds3 = TextService:GetTextSize(Text, Size, Font, Vector2.new(1920, 1080))
+        return Bounds3.X, Bounds3.Y
     else
         local Bounds = TextService:GetTextSize(Text, Size, Font, Resolution or Vector2.new(1920, 1080))
         return Bounds.X, Bounds.Y
