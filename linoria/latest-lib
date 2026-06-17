@@ -1267,35 +1267,16 @@ do
         end;
 
         function KeyPicker:Update()
-            local formatted = safeFormatDisplay(Slider, Slider.Value)
-
             if Info.Compact then
                 return;
-            end;
+            end
 
             local State = KeyPicker:GetState();
 
             local displayKey = (KeyPicker.Value == 'None') and '...' or KeyPicker.Value
-            ContainerLabel.Text = string.format('[%s] %s (%s)', displayKey, Info.Text, KeyPicker.Mode);
-                DisplayLabel.Text = string.format('%s', formatted or (Slider.Value .. Suffix))
-                KeybindEntry.Visible = State == true
-                if formatted then
-                    -- if custom formatter returns a full string, use it as-is
-                    DisplayLabel.Text = formatted
-                else
-                    DisplayLabel.Text = string.format('%s/%s', Slider.Value .. Suffix, Slider.Max .. Suffix);
-                end
-                    parentOn = true
+            ContainerLabel.Text = string.format('[%s] %s (%s)', displayKey, Info.Text, KeyPicker.Mode or 'None');
 
-            -- Ensure custom formatter wins (override any accidental append)
-            if formatted then
-                DisplayLabel.Text = formatted
-            end
-                end
-                KeybindEntry.Visible = parentOn
-            else
-                KeybindEntry.Visible = true
-            end
+            KeybindEntry.Visible = State == true
 
             ContainerLabel.TextColor3 = State and Library.AccentColor or Library.FontColor;
             Library.RegistryMap[ContainerLabel].Properties.TextColor3 = State and 'AccentColor' or 'FontColor';
@@ -1305,13 +1286,13 @@ do
 
             for _, Frame in next, Library.KeybindContainer:GetChildren() do
                 if Frame:IsA('Frame') and Frame.Visible then
-                    YSize = YSize + 18;
+                    YSize = YSize + 18
                     local LabelChild = Frame:FindFirstChildOfClass('TextLabel')
                     if LabelChild and (LabelChild.TextBounds.X + 20 > XSize) then
-                        XSize = LabelChild.TextBounds.X + 20 
+                        XSize = LabelChild.TextBounds.X + 20
                     end
-                end;
-            end;
+                end
+            end
 
             Library.KeybindFrame.Size = UDim2.new(0, math.max(XSize + 10 + 15, 210), 0, YSize + 23)
         end;
