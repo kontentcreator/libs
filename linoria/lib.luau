@@ -1610,7 +1610,7 @@ do
             TextLabel.Text = Text
 
             if Label.DoesWrap then
-                local _, Y = Library:GetTextBounds(Label.Text, TextLabel.Font, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
+                local _, Y = Library:GetTextBounds(Label.Text, TextLabel.Font, TextLabel.TextSize, Vector2.new(TextLabel.AbsoluteSize.X, math.huge))
                 TextLabel.Size = UDim2.new(1, -4, 0, Y + 4)
             end
 
@@ -1618,14 +1618,14 @@ do
         end
 
         if Label.DoesWrap then
-            local _, Y = Library:GetTextBounds(Label.Text, TextLabel.Font, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
+            local _, Y = Library:GetTextBounds(Label.Text, TextLabel.Font, TextLabel.TextSize, Vector2.new(TextLabel.AbsoluteSize.X, math.huge))
             TextLabel.Size = UDim2.new(1, -4, 0, Y + 4)
 
             local Last = TextLabel.AbsoluteSize
             TextLabel:GetPropertyChangedSignal('AbsoluteSize'):Connect(function()
                 if TextLabel.AbsoluteSize == Last then return end
 
-                local _, Y = Library:GetTextBounds(Label.Text, TextLabel.Font, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
+                local _, Y = Library:GetTextBounds(Label.Text, TextLabel.Font, TextLabel.TextSize, Vector2.new(TextLabel.AbsoluteSize.X, math.huge))
                 TextLabel.Size = UDim2.new(1, -4, 0, Y + 4)
 
                 Last = TextLabel.AbsoluteSize
