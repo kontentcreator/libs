@@ -3717,6 +3717,7 @@ function Library:CreateWindow(...)
             end;
 
             Groupbox.Container = Container;
+            Groupbox.Elements = {};
             setmetatable(Groupbox, BaseGroupbox);
             Groupbox:AddBlank(3);
             Groupbox:Resize();
