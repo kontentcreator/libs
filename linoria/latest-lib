@@ -2569,6 +2569,7 @@ do
             SearchBox.Visible = false;
             ItemList.Visible = true;
             Dropdown:BuildDropdownList();
+            Dropdown:Display();
         end
         -- apply disabled visuals/state
         DropdownOuter.Active = not Dropdown.Disabled
@@ -2783,16 +2784,17 @@ do
                                         end;
 
                                         Table:UpdateButton();
-                                        Dropdown:Display();
+
+                                        if SearchBox and not Info.Multi then
+                                            HideSearch();
+                                        else
+                                            Dropdown:Display();
+                                        end;
 
                                         Library:SafeCallback(Dropdown.Callback, Dropdown.Value);
                                         Library:SafeCallback(Dropdown.Changed, Dropdown.Value);
 
                                         Library:AttemptSave();
-
-                                        if SearchBox and not Info.Multi then
-                                            HideSearch();
-                                        end
                                     end;
                                 end;
                             end);
