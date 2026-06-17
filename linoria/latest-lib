@@ -2542,6 +2542,34 @@ do
                 Dropdown:BuildDropdownList();
             end)
         end
+
+        local function ShowSearch()
+            if not SearchBox then
+                return
+            end
+
+            SearchBox.Visible = true;
+            SearchBox.Text = '';
+            ItemList.Visible = false;
+
+            task.defer(function()
+                if SearchBox and SearchBox.Visible and ListOuter.Visible then
+                    SearchBox:CaptureFocus();
+                end
+            end)
+        end
+
+        local function HideSearch()
+            if not SearchBox then
+                return
+            end
+
+            SearchBox:ReleaseFocus();
+            SearchBox.Text = '';
+            SearchBox.Visible = false;
+            ItemList.Visible = true;
+            Dropdown:BuildDropdownList();
+        end
         -- apply disabled visuals/state
         DropdownOuter.Active = not Dropdown.Disabled
         ItemList.TextTransparency = Dropdown.Disabled and 0.8 or 0
@@ -2762,8 +2790,8 @@ do
 
                                         Library:AttemptSave();
 
-                                        if not Info.Multi then
-                                            Dropdown:CloseDropdown();
+                                        if SearchBox and not Info.Multi then
+                                            HideSearch();
                                         end
                                     end;
                                 end;
@@ -2790,7 +2818,9 @@ do
         end;
 
         function Dropdown:OpenDropdown()
-            if SearchBox then
+            if SearchBox and not Info.Multi then
+                ShowSearch();
+            elseif SearchBox then
                 SearchBox.Visible = true;
                 SearchBox.Text = '';
                 task.defer(function()
@@ -2808,6 +2838,7 @@ do
         function Dropdown:CloseDropdown()
             if SearchBox then
                 SearchBox:ReleaseFocus();
+                SearchBox.Text = '';
                 SearchBox.Visible = false;
             end
             ItemList.Visible = true;
@@ -2898,7 +2929,15 @@ do
                 end
 
                 if ListOuter.Visible then
-                    Dropdown:CloseDropdown();
+                    if SearchBox and not Info.Multi then
+                        if SearchBox.Visible then
+                            HideSearch();
+                        else
+                            ShowSearch();
+                        end
+                    else
+                        Dropdown:CloseDropdown();
+                    end
                 else
                     Dropdown:OpenDropdown();
                 end;
