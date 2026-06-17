@@ -1511,6 +1511,7 @@ do
             })
 
             Box.Container = BoxContainer
+            Box.Elements = {}
             setmetatable(Box, BaseGroupbox)
 
             function Box:Resize()
@@ -3040,6 +3041,7 @@ end
         end;
 
         Depbox.Container = Frame;
+        Depbox.Elements = {};
 
         setmetatable(Depbox, BaseGroupbox);
 
@@ -3890,6 +3892,7 @@ function Library:CreateWindow(...)
                 end);
 
                 Tab.Container = Container;
+                Tab.Elements = {};
                 Tabbox.Tabs[Name] = Tab;
 
                 setmetatable(Tab, BaseGroupbox);
