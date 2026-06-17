@@ -431,10 +431,12 @@ function Library:GetTextBounds(Text, FontArg, Size, Resolution)
 
     local fontParam = FontArg
     if (typeof or type)(fontParam) == "EnumItem" then
-        -- Convert Enum.Font enum item to a Font object using the global Font API
-        if type(Font) == "table" and Font.fromEnum then
-            fontParam = Font.fromEnum(fontParam)
-        end
+        -- If an Enum.Font was passed and we cannot reliably convert it to a Font
+        -- object in this environment, return an approximate measurement to avoid
+        -- calling TextService with an incompatible parameter.
+        local approxWidth = (#tostring(Text) * Size) * 0.5
+        local approxHeight = Size * 1.2
+        return approxWidth, approxHeight
     end
 
     local ok, Bounds = pcall(function()
