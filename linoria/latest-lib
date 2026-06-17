@@ -2418,8 +2418,6 @@ do
             error('AddDropdown must be called as a method on a Groupbox object (use Groupbox:AddDropdown).')
         end
 
-        local SEARCH_BOX_HEIGHT = 24;
-
         local function SafeFormatDisplayValue(Value)
             if type(Info.FormatDisplayValue) == 'function' then
                 local ok, res = pcall(Info.FormatDisplayValue, Value)
@@ -2512,6 +2510,33 @@ do
             ZIndex = 7;
             Parent = DropdownInner;
         });
+        local SearchBox
+        if Info.Searchable then
+            SearchBox = Library:Create('TextBox', {
+                BackgroundTransparency = 1;
+                ClearTextOnFocus = false;
+                Font = Library.Font;
+                PlaceholderColor3 = Color3.fromRGB(190, 190, 190);
+                PlaceholderText = 'Search...';
+                Position = UDim2.fromOffset(5, 0);
+                Size = UDim2.new(1, -24, 1, 0);
+                Text = '';
+                TextColor3 = Library.FontColor;
+                TextSize = Library.FontSize;
+                TextStrokeTransparency = 0;
+                TextXAlignment = Enum.TextXAlignment.Left;
+                Visible = false;
+                ZIndex = 7;
+                Parent = DropdownInner;
+            });
+            Library:AddToRegistry(SearchBox, {
+                TextColor3 = 'FontColor';
+            });
+
+            SearchBox:GetPropertyChangedSignal('Text'):Connect(function()
+                Dropdown:BuildDropdownList();
+            end)
+        end
         -- apply disabled visuals/state
         DropdownOuter.Active = not Dropdown.Disabled
         ItemList.TextTransparency = Dropdown.Disabled and 0.8 or 0
@@ -2524,7 +2549,6 @@ do
             Library:AddToolTip(Info.Tooltip, DropdownOuter)
         end
 
-        local SearchBox
         local MAX_DROPDOWN_ITEMS = 8;
         local ListOuter = Library:Create('Frame', {
             BackgroundColor3 = Color3.new(0, 0, 0);
@@ -2538,8 +2562,7 @@ do
         end;
 
         local function RecalculateListSize(YSize)
-            local SearchOffset = SearchBox and SEARCH_BOX_HEIGHT or 0
-            ListOuter.Size = UDim2.fromOffset(DropdownOuter.AbsoluteSize.X, (YSize or (MAX_DROPDOWN_ITEMS * 20 + 2)) + SearchOffset)
+            ListOuter.Size = UDim2.fromOffset(DropdownOuter.AbsoluteSize.X, YSize or (MAX_DROPDOWN_ITEMS * 20 + 2))
         end;
         RecalculateListPosition();
         RecalculateListSize();
@@ -2583,26 +2606,6 @@ do
             SortOrder = Enum.SortOrder.LayoutOrder;
             Parent = Scrolling;
         });
-        -- optional search box for dropdowns
-        if Info.Searchable then
-            SearchBox = Library:Create('TextBox', {
-                BackgroundTransparency = 1;
-                PlaceholderText = 'Search...';
-                Position = UDim2.fromOffset(4, 4);
-                Size = UDim2.new(1, -8, 0, 18);
-                TextSize = Library.FontSize;
-                TextXAlignment = Enum.TextXAlignment.Left;
-                Visible = false;
-                ZIndex = 22;
-                Parent = ListInner;
-            });
-            Scrolling.Position = UDim2.fromOffset(0, SEARCH_BOX_HEIGHT);
-            Scrolling.Size = UDim2.new(1, 0, 1, -SEARCH_BOX_HEIGHT);
-            -- rebuild list when search text changes
-            SearchBox:GetPropertyChangedSignal('Text'):Connect(function()
-                Dropdown:BuildDropdownList();
-            end)
-        end
         function Dropdown:Display()
             local Values = Dropdown.Values;
             local Str = '';
@@ -2781,7 +2784,9 @@ do
             if SearchBox then
                 SearchBox.Visible = true;
                 SearchBox.Text = '';
+                SearchBox:CaptureFocus();
             end
+            ItemList.Visible = false;
             ListOuter.Visible = true;
             Library.OpenedFrames[ListOuter] = true;
             DropdownArrow.Rotation = 180;
@@ -2789,8 +2794,10 @@ do
 
         function Dropdown:CloseDropdown()
             if SearchBox then
+                SearchBox:ReleaseFocus();
                 SearchBox.Visible = false;
             end
+            ItemList.Visible = true;
             ListOuter.Visible = false;
             Library.OpenedFrames[ListOuter] = nil;
             DropdownArrow.Rotation = 0;
@@ -2868,6 +2875,7 @@ do
 
         DropdownOuter.InputBegan:Connect(function(Input)
             if Dropdown.Disabled then return end
+            if SearchBox and SearchBox.Visible then return end
             if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and not Library:MouseIsOverOpenedFrame() then
                 if ListOuter.Visible then
                     Dropdown:CloseDropdown();
@@ -2879,11 +2887,15 @@ do
         InputService.InputBegan:Connect(function(Input)
             if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then
                 local AbsPos, AbsSize = ListOuter.AbsolutePosition, ListOuter.AbsoluteSize;
+                local HeaderPos, HeaderSize = DropdownOuter.AbsolutePosition, DropdownOuter.AbsoluteSize;
 
                 if Mouse.X < AbsPos.X or Mouse.X > AbsPos.X + AbsSize.X
                     or Mouse.Y < (AbsPos.Y - 20 - 1) or Mouse.Y > AbsPos.Y + AbsSize.Y then
 
-                    Dropdown:CloseDropdown();
+                    if Mouse.X < HeaderPos.X or Mouse.X > HeaderPos.X + HeaderSize.X
+                        or Mouse.Y < HeaderPos.Y or Mouse.Y > HeaderPos.Y + HeaderSize.Y then
+                        Dropdown:CloseDropdown();
+                    end;
                 end;
             end;
         end);
