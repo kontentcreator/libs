@@ -422,7 +422,10 @@ end;
 
 function Library:GetTextBounds(Text, Font, Size, Resolution)
     -- Support both a numeric width (used with GetTextBoundsAsync) and a Vector2 resolution (used with GetTextSize).
-    if typeof(Resolution) == "number" then
+    local resType = (typeof or type)(Resolution)
+
+    -- If a numeric width was provided, prefer GetTextBoundsAsync (width-based bounds).
+    if resType == "number" then
         local Params = Instance.new("GetTextBoundsParams")
         Params.Text = Text
         Params.RichText = true
@@ -430,12 +433,40 @@ function Library:GetTextBounds(Text, Font, Size, Resolution)
         Params.Size = Size
         Params.Width = Resolution
 
-        local Bounds = TextService:GetTextBoundsAsync(Params)
-        return Bounds.X, Bounds.Y
-    else
-        local Bounds = TextService:GetTextSize(Text, Size, Font, Resolution or Vector2.new(1920, 1080))
-        return Bounds.X, Bounds.Y
+        local ok, Bounds = pcall(function()
+            return TextService:GetTextBoundsAsync(Params)
+        end)
+        if ok and Bounds then
+            return Bounds.X, Bounds.Y
+        end
+
+        -- Fallback: use GetTextSize with a Vector2 constructed from the numeric width.
+        local fbBounds = TextService:GetTextSize(Text, Size, Font, Vector2.new(Resolution, math.huge))
+        return fbBounds.X, fbBounds.Y
     end
+
+    -- If a Vector2 or nil/other was provided, use GetTextSize which expects a Vector2.
+    local resolutionVector = Resolution
+    if (typeof or type)(resolutionVector) ~= "userdata" and type(resolutionVector) ~= "table" then
+        resolutionVector = Vector2.new(1920, 1080)
+    end
+
+    local ok2, Bounds2 = pcall(function()
+        return TextService:GetTextSize(Text, Size, Font, resolutionVector)
+    end)
+    if ok2 and Bounds2 then
+        return Bounds2.X, Bounds2.Y
+    end
+
+    -- Last-resort fallback: estimate using GetTextBoundsAsync with a large width.
+    local Params2 = Instance.new("GetTextBoundsParams")
+    Params2.Text = Text
+    Params2.RichText = true
+    Params2.Font = Font
+    Params2.Size = Size
+    Params2.Width = workspace and workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize and (workspace.CurrentCamera.ViewportSize.X - 32) or 1920
+    local Bounds3 = TextService:GetTextBoundsAsync(Params2)
+    return Bounds3.X, Bounds3.Y
 end;
 
 function Library:GetDarkerColor(Color)
