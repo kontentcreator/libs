@@ -1267,30 +1267,16 @@ do
         end;
 
         function KeyPicker:Update()
-            if Info.NoUI then
+            if Info.Compact then
                 return;
-            end;
+            end
 
             local State = KeyPicker:GetState();
 
             local displayKey = (KeyPicker.Value == 'None') and '...' or KeyPicker.Value
-            ContainerLabel.Text = string.format('[%s] %s (%s)', displayKey, Info.Text, KeyPicker.Mode);
-            local kbMode = Library.KeybindMode or 'All'
-            if kbMode == 'Active' then
-                KeybindEntry.Visible = State == true
-            elseif kbMode == 'Toggled' then
-                local parentOn = false
-                if ParentObj and ParentObj.Type == 'Toggle' then
-                    parentOn = ParentObj.Value == true
-                elseif KeyPicker.SyncToggleState and ParentObj then
-                    parentOn = ParentObj.Value == true
-                else
-                    parentOn = true
-                end
-                KeybindEntry.Visible = parentOn
-            else
-                KeybindEntry.Visible = true
-            end
+            ContainerLabel.Text = string.format('[%s] %s (%s)', displayKey, Info.Text, KeyPicker.Mode or 'None');
+
+            KeybindEntry.Visible = State == true
 
             ContainerLabel.TextColor3 = State and Library.AccentColor or Library.FontColor;
             Library.RegistryMap[ContainerLabel].Properties.TextColor3 = State and 'AccentColor' or 'FontColor';
@@ -1300,13 +1286,13 @@ do
 
             for _, Frame in next, Library.KeybindContainer:GetChildren() do
                 if Frame:IsA('Frame') and Frame.Visible then
-                    YSize = YSize + 18;
+                    YSize = YSize + 18
                     local LabelChild = Frame:FindFirstChildOfClass('TextLabel')
                     if LabelChild and (LabelChild.TextBounds.X + 20 > XSize) then
-                        XSize = LabelChild.TextBounds.X + 20 
+                        XSize = LabelChild.TextBounds.X + 20
                     end
-                end;
-            end;
+                end
+            end
 
             Library.KeybindFrame.Size = UDim2.new(0, math.max(XSize + 10 + 15, 210), 0, YSize + 23)
         end;
@@ -2277,12 +2263,34 @@ do
 
         function Slider:Display()
             local Suffix = Info.Suffix or '';
+            local function safeFormatDisplay(...)
+                if type(Info.FormatDisplayValue) == 'function' then
+                    local ok, res = pcall(Info.FormatDisplayValue, ...)
+                    if ok and res ~= nil then
+                        return tostring(res)
+                    end
+                end
+                return nil
+            end
+
             if Info.Compact then
-                DisplayLabel.Text = Info.Text .. ': ' .. Slider.Value .. Suffix
+                local formatted = safeFormatDisplay(Slider, Slider.Value)
+                if formatted then
+                    DisplayLabel.Text = Info.Text .. ': ' .. formatted
+                else
+                    DisplayLabel.Text = Info.Text .. ': ' .. Slider.Value .. Suffix
+                end
             elseif Info.HideMax then
-                DisplayLabel.Text = string.format('%s', Slider.Value .. Suffix)
+                local formatted = safeFormatDisplay(Slider, Slider.Value)
+                DisplayLabel.Text = string.format('%s', formatted or (Slider.Value .. Suffix))
             else
-                DisplayLabel.Text = string.format('%s/%s', Slider.Value .. Suffix, Slider.Max .. Suffix);
+                local formatted = safeFormatDisplay(Slider, Slider.Value)
+                if formatted then
+                    -- if custom formatter returns a full string, use it as-is
+                    DisplayLabel.Text = formatted
+                else
+                    DisplayLabel.Text = string.format('%s/%s', Slider.Value .. Suffix, Slider.Max .. Suffix)
+                end
             end
 
             local X = math.ceil(Library:MapValue(Slider.Value, Slider.Min, Slider.Max, 0, Slider.MaxSize));
@@ -2582,16 +2590,32 @@ do
             local Values = Dropdown.Values;
             local Str = '';
 
+            local function safeFormatValue(v)
+                if type(Info.FormatDisplayValue) == 'function' then
+                    local ok, res = pcall(Info.FormatDisplayValue, v)
+                    if ok and res ~= nil then
+                        return tostring(res)
+                    end
+                end
+                return nil
+            end
+
             if Info.Multi then
                 for Idx, Value in next, Values do
                     if Dropdown.Value[Value] then
-                        Str = Str .. Value .. ', ';
+                        local formatted = safeFormatValue(Value)
+                        Str = Str .. (formatted or tostring(Value)) .. ', '
                     end;
                 end;
 
                 Str = Str:sub(1, #Str - 2);
             else
-                Str = Dropdown.Value or '';
+                if Dropdown.Value then
+                    local formatted = safeFormatValue(Dropdown.Value)
+                    Str = formatted or tostring(Dropdown.Value)
+                else
+                    Str = ''
+                end
             end;
 
             ItemList.Text = (Str == '' and '--' or Str);
@@ -2648,12 +2672,20 @@ do
                                 BackgroundColor3 = 'MainColor';
                                 BorderColor3 = 'OutlineColor';
                             });
+                            local formattedValueText = nil
+                            if type(Info.FormatDisplayValue) == 'function' then
+                                local ok, res = pcall(Info.FormatDisplayValue, Value)
+                                if ok and res ~= nil then
+                                    formattedValueText = tostring(res)
+                                end
+                            end
+
                             local ButtonLabel = Library:CreateLabel({
                                 Active = false;
                                 Size = UDim2.new(1, -6, 1, 0);
                                 Position = UDim2.new(0, 6, 0, 0);
                                 TextSize = Library.FontSize;
-                                Text = Value;
+                                Text = formattedValueText or tostring(Value);
                                 TextXAlignment = Enum.TextXAlignment.Left;
                                 ZIndex = 25;
                                 Parent = Button;
