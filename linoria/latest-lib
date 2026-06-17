@@ -420,7 +420,7 @@ function Library:MapValue(Value, MinA, MaxA, MinB, MaxB)
     return (1 - ((Value - MinA) / (MaxA - MinA))) * MinB + ((Value - MinA) / (MaxA - MinA)) * MaxB;
 end;
 
-function Library:GetTextBounds(Text, Font, Size, Resolution)
+function Library:GetTextBounds(Text, FontArg, Size, Resolution)
     -- Normalize resolution into a Vector2 for TextService:GetTextSize.
     local resolutionVector
     if (typeof or type)(Resolution) == "number" then
@@ -429,9 +429,12 @@ function Library:GetTextBounds(Text, Font, Size, Resolution)
         resolutionVector = Resolution or (workspace and workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize) or Vector2.new(1920, 1080)
     end
 
-    local fontParam = Font
-    if (typeof or type)(fontParam) == "EnumItem" and fontParam.fromEnum then
-        fontParam = fontParam.fromEnum(fontParam)
+    local fontParam = FontArg
+    if (typeof or type)(fontParam) == "EnumItem" then
+        -- Convert Enum.Font enum item to a Font object using the global Font API
+        if type(Font) == "table" and Font.fromEnum then
+            fontParam = Font.fromEnum(fontParam)
+        end
     end
 
     local ok, Bounds = pcall(function()
