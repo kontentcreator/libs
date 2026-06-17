@@ -1,4 +1,3 @@
-
 local InputService = game:GetService('UserInputService');
 local TextService = game:GetService('TextService');
 local CoreGui = game:GetService('CoreGui');
@@ -1559,18 +1558,38 @@ do
         local Groupbox = self;
         local Container = Groupbox.Container;
 
+        local IsWrapped = DoesWrap or false
+
         local TextLabel = Library:CreateLabel({
             Size = UDim2.new(1, -4, 0, 15);
             TextSize = Library.FontSize;
             Text = Text;
-            TextWrapped = DoesWrap or false,
+            TextWrapped = IsWrapped,
             TextXAlignment = Enum.TextXAlignment.Left;
             ZIndex = 5;
             Parent = Container;
         });
-        if DoesWrap then
-            local Y = select(2, Library:GetTextBounds(Text, Library.Font, Library.FontSize, Vector2.new(TextLabel.AbsoluteSize.X, math.huge)))
-            TextLabel.Size = UDim2.new(1, -4, 0, Y)
+
+        -- store DoesWrap on the label for later checks
+        Label.Text = Text
+        Label.DoesWrap = IsWrapped
+
+        if IsWrapped then
+            local Y = select(2, Library:GetTextBounds(Text, TextLabel.Font, TextLabel.TextSize, TextLabel.AbsoluteSize.X))
+            TextLabel.Size = UDim2.new(1, -4, 0, Y + 4)
+
+            local Last = TextLabel.AbsoluteSize
+            TextLabel:GetPropertyChangedSignal('AbsoluteSize'):Connect(function()
+                if TextLabel.AbsoluteSize == Last then
+                    return
+                end
+
+                local _, NewY = Library:GetTextBounds(Label.Text, TextLabel.Font, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
+                TextLabel.Size = UDim2.new(1, -4, 0, NewY + 4)
+
+                Last = TextLabel.AbsoluteSize
+                Groupbox:Resize()
+            end)
         else
             Library:Create('UIListLayout', {
                 Padding = UDim.new(0, 4);
@@ -1583,18 +1602,19 @@ do
 
         Label.TextLabel = TextLabel;
         Label.Container = Container;
-        function Label:SetText(Text)
-            TextLabel.Text = Text
+        function Label:SetText(TextVal)
+            Label.Text = TextVal
+            TextLabel.Text = TextVal
 
-            if DoesWrap then
-                local Y = select(2, Library:GetTextBounds(Text, Library.Font, Library.FontSize, Vector2.new(TextLabel.AbsoluteSize.X, math.huge)))
-                TextLabel.Size = UDim2.new(1, -4, 0, Y)
+            if Label.DoesWrap then
+                local _, Y = Library:GetTextBounds(TextVal, TextLabel.Font, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
+                TextLabel.Size = UDim2.new(1, -4, 0, Y + 4)
             end
 
             Groupbox:Resize();
         end
 
-        if (not DoesWrap) then
+        if (not Label.DoesWrap) then
             setmetatable(Label, BaseAddons);
         end
 
