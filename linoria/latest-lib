@@ -420,8 +420,22 @@ function Library:MapValue(Value, MinA, MaxA, MinB, MaxB)
 end;
 
 function Library:GetTextBounds(Text, Font, Size, Resolution)
-    local Bounds = TextService:GetTextSize(Text, Size, Font, Resolution or Vector2.new(1920, 1080))
-    return Bounds.X, Bounds.Y
+    -- Accept either a Vector2 `Resolution` (legacy linoria usage)
+    -- or a numeric `Width` (obsidian usage). Fall back to screen size when missing.
+    if type(Resolution) == 'number' then
+        local Params = Instance.new('GetTextBoundsParams')
+        Params.Text = Text
+        Params.RichText = true
+        Params.Font = Font
+        Params.Size = Size
+        Params.Width = Resolution or (workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize.X - 32) or 1920
+
+        local Bounds = TextService:GetTextBoundsAsync(Params)
+        return Bounds.X, Bounds.Y
+    else
+        local Bounds = TextService:GetTextSize(Text, Size, Font, Resolution or Vector2.new(1920, 1080))
+        return Bounds.X, Bounds.Y
+    end
 end;
 
 function Library:GetDarkerColor(Color)
