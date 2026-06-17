@@ -222,12 +222,22 @@ function Library:CreateLabel(Properties, IsHud)
     Library:AddToRegistry(_Instance, {
         TextColor3 = 'FontColor';
     }, IsHud);
-    local props = Properties or {}
+    local props = {}
+    local shouldWrap = false
 
-    -- Support DoesWrap/TextWrapped option (enable wrapping; size handled by caller)
-    if props.DoesWrap or props.TextWrapped then
+    if Properties then
+        for Property, Value in next, Properties do
+            if Property ~= 'DoesWrap' then
+                props[Property] = Value
+            end
+        end
+
+        shouldWrap = Properties.DoesWrap or Properties.TextWrapped or false
+    end
+
+    if shouldWrap then
         _Instance.TextWrapped = true
-        -- leave sizing to callers (some code calculates and sets Size)
+        props.TextWrapped = true
     end
 
     return Library:Create(_Instance, props);
@@ -1541,24 +1551,113 @@ do
 
         return unpack(Boxes)
     end;
-    function Funcs:AddLabel(Text, DoesWrap)
-        local Label = {};
+    function Funcs:AddLabel(Info, DoesWrap, Idx)
+        local LabelInfo = {}
+        local LabelIdx = Idx
+
+        if type(Info) == 'table' then
+            LabelInfo = Info
+            LabelIdx = DoesWrap
+        elseif type(DoesWrap) == 'table' then
+            LabelInfo = DoesWrap
+            LabelIdx = Info
+            if LabelInfo.Text == nil then
+                LabelInfo.Text = Info
+            end
+        else
+            LabelInfo = {
+                Text = Info;
+                DoesWrap = DoesWrap or false;
+            }
+        end
+
+        if LabelInfo.Text == nil then
+            LabelInfo.Text = Info
+        end
+
+        assert(type(LabelInfo.Text) == 'string', 'AddLabel: Missing `Text` string.')
+
+        local Wrapped = LabelInfo.DoesWrap or LabelInfo.TextWrapped or false
+        local TextSize = LabelInfo.Size or LabelInfo.TextSize or Library.FontSize
+
+        local Label = {
+            Type = 'Label';
+            Text = LabelInfo.Text;
+            DoesWrap = Wrapped;
+            Visible = if LabelInfo.Visible == nil then true else LabelInfo.Visible;
+            Addons = {};
+        };
 
         local Groupbox = self;
         local Container = Groupbox.Container;
-
         local TextLabel = Library:CreateLabel({
             Size = UDim2.new(1, -4, 0, 15);
-            TextSize = Library.FontSize;
-            Text = Text;
-            TextWrapped = DoesWrap or false,
+            TextSize = TextSize;
+            Text = LabelInfo.Text;
+            TextWrapped = Wrapped;
             TextXAlignment = Enum.TextXAlignment.Left;
+            TextYAlignment = Wrapped and Enum.TextYAlignment.Top or Enum.TextYAlignment.Center;
             ZIndex = 5;
+            Visible = Label.Visible;
             Parent = Container;
         });
-        if DoesWrap then
-            local Y = select(2, Library:GetTextBounds(Text, Library.Font, Library.FontSize, Vector2.new(TextLabel.AbsoluteSize.X, math.huge)))
-            TextLabel.Size = UDim2.new(1, -4, 0, Y)
+
+        local Spacer = Library:Create('Frame', {
+            BackgroundTransparency = 1;
+            Size = UDim2.new(1, 0, 0, 5);
+            ZIndex = 1;
+            Visible = Label.Visible;
+            Parent = Container;
+        });
+
+        local LastWrapWidth = nil
+        local LastWrapText = nil
+        local LastWrapTextSize = nil
+
+        local function UpdateWrappedHeight()
+            if not Wrapped then
+                return false
+            end
+
+            local Width = TextLabel.AbsoluteSize.X
+            if Width <= 0 then
+                local ParentWidth = Container.AbsoluteSize.X
+                if ParentWidth <= 0 then
+                    return false
+                end
+
+                Width = math.max(ParentWidth - 4, 0)
+            end
+
+            local CurrentText = TextLabel.Text
+            local CurrentTextSize = TextLabel.TextSize
+            if LastWrapWidth == Width and LastWrapText == CurrentText and LastWrapTextSize == CurrentTextSize then
+                return false
+            end
+
+            LastWrapWidth = Width
+            LastWrapText = CurrentText
+            LastWrapTextSize = CurrentTextSize
+
+            local _, Height = Library:GetTextBounds(CurrentText, TextLabel.Font, CurrentTextSize, Vector2.new(Width, math.huge))
+            if TextLabel.Size.Y.Offset ~= Height then
+                TextLabel.Size = UDim2.new(1, -4, 0, Height)
+                return true
+            end
+
+            return false
+        end
+
+        local function RefreshWrappedHeight()
+            if UpdateWrappedHeight() then
+                Groupbox:Resize()
+            end
+        end
+
+        if Wrapped then
+            task.defer(RefreshWrappedHeight)
+            TextLabel:GetPropertyChangedSignal('AbsoluteSize'):Connect(RefreshWrappedHeight)
+            TextLabel:GetPropertyChangedSignal('TextSize'):Connect(RefreshWrappedHeight)
         else
             Library:Create('UIListLayout', {
                 Padding = UDim.new(0, 4);
@@ -1571,22 +1670,37 @@ do
 
         Label.TextLabel = TextLabel;
         Label.Container = Container;
-        function Label:SetText(Text)
-            TextLabel.Text = Text
+        Label.Spacer = Spacer;
 
-            if DoesWrap then
-                local Y = select(2, Library:GetTextBounds(Text, Library.Font, Library.FontSize, Vector2.new(TextLabel.AbsoluteSize.X, math.huge)))
-                TextLabel.Size = UDim2.new(1, -4, 0, Y)
+        function Label:SetText(NewText)
+            Label.Text = NewText
+            TextLabel.Text = NewText
+
+            if Wrapped then
+                RefreshWrappedHeight()
+            else
+                Groupbox:Resize();
             end
 
-            Groupbox:Resize();
+            return Label;
         end
 
-        if (not DoesWrap) then
+        function Label:SetVisible(Visible)
+            Label.Visible = Visible
+            TextLabel.Visible = Visible
+            Spacer.Visible = Visible
+            Groupbox:Resize();
+            return Label;
+        end
+
+        if type(LabelIdx) == 'string' or type(LabelIdx) == 'number' then
+            Options[LabelIdx] = Label
+        end
+
+        if (not Wrapped) then
             setmetatable(Label, BaseAddons);
         end
 
-        Groupbox:AddBlank(5);
         Groupbox:Resize();
 
         return Label;
