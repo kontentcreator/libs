@@ -1639,6 +1639,7 @@ function Funcs:AddLabel(...)
     Groupbox.Elements = Groupbox.Elements or {}
     table.insert(Groupbox.Elements, Label)
 
+    Labels = Labels or {}
     if Data.Idx then
         Labels[Data.Idx] = Label
     else
