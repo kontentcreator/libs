@@ -2626,7 +2626,7 @@ do
                             local Table = {};
                             Count = Count + 1;
 
-                            local IsValueDisabled = table.find(Dropdown.DisabledValues, Value)
+                            local IsValueDisabled = table.find(Dropdown.DisabledValues or {}, Value)
 
                             local Button = Library:Create('Frame', {
                                 BackgroundColor3 = Library.MainColor;
@@ -2652,7 +2652,7 @@ do
                                 Parent = Button;
                             });
 
-                            ButtonLabel.TextTransparency = (Dropdown.Disabled or IsValueDisabled) and 0.8 or 0
+                                ButtonLabel.TextTransparency = (Dropdown.Disabled or IsValueDisabled) and 0.8 or 0
 
                             Library:OnHighlight(Button, Button,
                                 { BorderColor3 = 'AccentColor', ZIndex = 24 },
@@ -2677,7 +2677,7 @@ do
                                 Library.RegistryMap[ButtonLabel].Properties.TextColor3 = Selected and 'AccentColor' or 'FontColor';
                             end;
                             ButtonLabel.InputBegan:Connect(function(Input)
-                                if Dropdown.Disabled or IsValueDisabled then return end
+                                    if Dropdown.Disabled or IsValueDisabled then return end
                                 if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then
                                     local Try = not Selected;
 
@@ -2757,7 +2757,7 @@ do
             if Dropdown.Multi then
                 local nTable = {};
                 for Value, Bool in next, Val do
-                    if table.find(Dropdown.Values, Value) and not table.find(Dropdown.DisabledValues, Value) then
+                    if table.find(Dropdown.Values, Value) and not table.find(Dropdown.DisabledValues or {}, Value) then
                         nTable[Value] = true
                     end;
                 end;
@@ -2766,7 +2766,7 @@ do
             else
                 if (not Val) then
                     Dropdown.Value = nil;
-                elseif table.find(Dropdown.Values, Val) and not table.find(Dropdown.DisabledValues, Val) then
+                elseif table.find(Dropdown.Values, Val) and not table.find(Dropdown.DisabledValues or {}, Val) then
                     Dropdown.Value = Val;
                 end;
             end;
@@ -2778,17 +2778,24 @@ do
         end;
 
         function Dropdown:SetDisabledValues(NewDisabledValues)
-            Dropdown.DisabledValues = NewDisabledValues or {};
+            -- normalize input to table
+            if NewDisabledValues == nil then
+                Dropdown.DisabledValues = {}
+            elseif type(NewDisabledValues) ~= 'table' then
+                Dropdown.DisabledValues = { NewDisabledValues }
+            else
+                Dropdown.DisabledValues = NewDisabledValues
+            end
 
             -- remove any active selections that are now disabled
             if Dropdown.Multi then
                 for Value, _ in next, Dropdown.Value do
-                    if table.find(Dropdown.DisabledValues, Value) then
+                    if table.find(Dropdown.DisabledValues or {}, Value) then
                         Dropdown.Value[Value] = nil
                     end
                 end
             else
-                if Dropdown.Value and table.find(Dropdown.DisabledValues, Dropdown.Value) then
+                if Dropdown.Value and table.find(Dropdown.DisabledValues or {}, Dropdown.Value) then
                     Dropdown.Value = nil
                 end
             end
