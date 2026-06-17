@@ -2406,6 +2406,9 @@ do
         };
 
         local Groupbox = self;
+        if not Groupbox or type(Groupbox) ~= 'table' or not Groupbox.Container then
+            error('AddDropdown must be called as a method on a Groupbox object (use Groupbox:AddDropdown).')
+        end
         -- normalize DisabledValues to always be a table (allow single value)
         local dv = Info.DisabledValues
         if dv == nil then
