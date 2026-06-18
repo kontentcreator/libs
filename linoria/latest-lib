@@ -217,6 +217,22 @@ local function IsValidCustomIcon(Icon)
     return type(Icon) == 'string' and (Icon:match('rbxasset') or Icon:match('roblox%.com/asset/%?id=') or Icon:match('rbxthumb://type='))
 end
 
+local function NormalizeIconValue(IconName)
+    if type(IconName) ~= 'table' then
+        return nil, IconName
+    end
+
+    local IconType = IconName.Type or IconName.Kind or IconName.Source or IconName[1]
+    local IconValue = IconName.Value or IconName.Icon or IconName.Id or IconName.AssetId or IconName[2]
+
+    if IconValue == nil then
+        IconValue = IconType
+        IconType = nil
+    end
+
+    return IconType, IconValue
+end
+
 function Library:GetIcon(IconName)
     if not FetchIcons or not Icons then
         return nil
@@ -235,7 +251,24 @@ function Library:GetCustomIcon(IconName)
         return nil
     end
 
-    if tonumber(IconName) then
+    local IconType, IconValue = NormalizeIconValue(IconName)
+    if IconType then
+        local Source = string.lower(tostring(IconType))
+
+        if Source == 'lucide' then
+            IconName = IconValue
+        elseif Source == 'main' or Source == 'roblox' or Source == 'asset' or Source == 'rbxasset' or Source == 'rbxassetid' or Source == 'custom' or Source == 'image' then
+            IconName = IconValue
+        elseif IconValue ~= nil then
+            IconName = IconValue
+        else
+            IconName = IconType
+        end
+    elseif IconValue ~= nil then
+        IconName = IconValue
+    end
+
+    if type(IconName) == 'number' or (type(IconName) == 'string' and tonumber(IconName)) then
         IconName = string.format('rbxassetid://%s', tostring(IconName))
     end
 
