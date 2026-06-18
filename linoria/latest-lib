@@ -4353,11 +4353,17 @@ function Library:CreateWindow(...)
             Text = '';
             Size = UDim2.fromScale(1, 1);
             ZIndex = 9000;
-            Parent = Inner;
+            Parent = Outer;
         });
         local DialogTweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        local Viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080)
-        local BaseDialogWidth = math.min((Config.Size and Config.Size.X and Config.Size.X.Offset) or 550, Viewport.X - 20)
+        local function GetDialogHostWidth()
+            local HostWidth = Outer.AbsoluteSize and Outer.AbsoluteSize.X or 0
+            if HostWidth <= 0 then
+                HostWidth = (Config.Size and Config.Size.X and Config.Size.X.Offset) or 550
+            end
+            return HostWidth
+        end
+        local BaseDialogWidth = math.max(300, math.min(400, GetDialogHostWidth() - 20))
 
         TweenService:Create(DialogOverlay, DialogTweenInfo, {
             BackgroundTransparency = 0.5;
@@ -4590,7 +4596,7 @@ function Library:CreateWindow(...)
             FillDirection = Enum.FillDirection.Horizontal;
             HorizontalAlignment = Enum.HorizontalAlignment.Right;
             VerticalAlignment = Enum.VerticalAlignment.Center;
-            Wraps = false;
+            Wraps = true;
             SortOrder = Enum.SortOrder.LayoutOrder;
             Parent = ButtonsHolder;
         });
@@ -4609,8 +4615,9 @@ function Library:CreateWindow(...)
         }
 
         function Dialog:Resize()
-            local Viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080)
-            local MinWidth = math.min((Config.Size and Config.Size.X and Config.Size.X.Offset) or 550, Viewport.X - 20)
+            local HostWidth = GetDialogHostWidth()
+            local MinWidth = math.max(300, math.min(400, HostWidth - 20))
+            local MaxWidth = math.max(MinWidth, math.floor(HostWidth * 0.85))
             local RequiredWidth = MinWidth
 
             local HasButtons = false
@@ -4626,8 +4633,16 @@ function Library:CreateWindow(...)
 
             local ButtonTargetWidth = TotalButtonWidth + ((ButtonCount - 1) * 8) + 30
             RequiredWidth = math.max(RequiredWidth, ButtonTargetWidth)
-            DialogFrame.Size = UDim2.fromOffset(math.min(RequiredWidth, Viewport.X - 20), 0)
+            DialogFrame.Size = UDim2.fromOffset(math.min(RequiredWidth, MaxWidth), 0)
 
+            local HasElements = false
+            for _, Child in next, DialogContainer:GetChildren() do
+                if not Child:IsA('UIListLayout') and not Child:IsA('UIPadding') then
+                    HasElements = true
+                    break
+                end
+            end
+            DialogContainer.Visible = HasElements
             Separator.Visible = HasButtons
             ButtonsHolder.Visible = HasButtons
         end
@@ -4740,7 +4755,7 @@ function Library:CreateWindow(...)
 
             local ButtonContainer = Library:Create('Frame', {
                 BackgroundTransparency = 1;
-                Size = UDim2.fromOffset(0, 20);
+                Size = UDim2.fromOffset(0, 26);
                 LayoutOrder = tonumber(ButtonInfo.Order) or 0;
                 ZIndex = 9002;
                 Parent = ButtonsHolder;
@@ -4750,7 +4765,7 @@ function Library:CreateWindow(...)
                 BackgroundColor3 = Color3.new(0, 0, 0);
                 BorderColor3 = Color3.new(0, 0, 0);
                 BorderSizePixel = 0;
-                Size = UDim2.fromOffset(0, 20);
+                Size = UDim2.fromOffset(0, 26);
                 ZIndex = 9003;
                 Parent = ButtonContainer;
             });
@@ -4799,8 +4814,8 @@ function Library:CreateWindow(...)
             });
 
             local LabelWidth = Library:GetTextBounds(ButtonText, Library.Font, 14)
-            ButtonContainer.Size = UDim2.fromOffset(LabelWidth + 24, 20)
-            ButtonOuter.Size = UDim2.fromOffset(LabelWidth + 24, 20)
+            ButtonContainer.Size = UDim2.fromOffset(LabelWidth + 30, 26)
+            ButtonOuter.Size = UDim2.fromOffset(LabelWidth + 30, 26)
 
             local ProgressBar = nil
             if WaitTime > 0 then
