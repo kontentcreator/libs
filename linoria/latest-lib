@@ -4027,12 +4027,12 @@ function Library:CreateWindow(...)
             return Groupbox;
         end;
 
-        function Tab:AddLeftGroupbox(Name)
-            return Tab:AddGroupbox({ Side = 1; Name = Name; });
+        function Tab:AddLeftGroupbox(Name, IconName)
+            return Tab:AddGroupbox({ Side = 1; Name = Name; IconName = IconName; });
         end;
 
-        function Tab:AddRightGroupbox(Name)
-            return Tab:AddGroupbox({ Side = 2; Name = Name; });
+        function Tab:AddRightGroupbox(Name, IconName)
+            return Tab:AddGroupbox({ Side = 2; Name = Name; IconName = IconName; });
         end;
 
         function Tab:AddTabbox(Info)
