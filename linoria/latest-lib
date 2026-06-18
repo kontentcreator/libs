@@ -28,6 +28,8 @@ local Library = {
     RegistryMap = {};
 
     HudRegistry = {};
+    Dialogues = {};
+    ActiveDialog = nil;
 
     FontColor = Color3.fromRGB(255, 255, 255);
     MainColor = Color3.fromRGB(28, 28, 28);
@@ -3640,6 +3642,7 @@ function Library:CreateWindow(...)
 
     local Window = {
         Tabs = {};
+        Dialogues = Library.Dialogues;
     };
 
     local Outer = Library:Create('Frame', {
@@ -4292,6 +4295,545 @@ function Library:CreateWindow(...)
         return Tab;
     end;
 
+    function Window:AddDialog(Idx, Info)
+        if type(Idx) == 'table' and Info == nil then
+            Info = Idx
+            Idx = Info.Id or Info.Name or Info.Title
+        end
+
+        if type(Info) ~= 'table' then
+            Info = {
+                Title = tostring(Info or 'Dialog');
+            }
+        end
+
+        local DialogId = tostring(Idx or Info.Id or Info.Name or Info.Title or string.sub(tostring({}), 8))
+        Info.Title = tostring(Info.Title or Info.Name or 'Dialog')
+        Info.Description = tostring(Info.Description or '')
+        if Info.AutoDismiss == nil then
+            Info.AutoDismiss = true
+        end
+        if Info.OutsideClickDismiss == nil then
+            Info.OutsideClickDismiss = true
+        end
+        if type(Info.FooterButtons) ~= 'table' then
+            Info.FooterButtons = {}
+        end
+
+        if Library.Dialogues[DialogId] and Library.Dialogues[DialogId].Dismiss then
+            Library.Dialogues[DialogId]:Dismiss()
+        end
+        if Library.ActiveDialog and Library.ActiveDialog ~= Library.Dialogues[DialogId] then
+            Library.ActiveDialog:Dismiss()
+        end
+
+        local function ResolveColor(Value)
+            if type(Value) == 'string' then
+                return Library[Value]
+            end
+
+            return Value
+        end
+
+        local DialogOverlay = Library:Create('TextButton', {
+            BackgroundColor3 = Color3.new(0, 0, 0);
+            BackgroundTransparency = 1;
+            AutoButtonColor = false;
+            Modal = true;
+            Active = true;
+            Text = '';
+            Size = UDim2.fromScale(1, 1);
+            ZIndex = 9000;
+            Parent = ScreenGui;
+        });
+        TweenService:Create(DialogOverlay, Library.TweenInfo, {
+            BackgroundTransparency = 0.5;
+        }):Play();
+
+        local DialogFrame = Library:Create('TextButton', {
+            AnchorPoint = Vector2.new(0.5, 0.5);
+            BackgroundColor3 = Library.MainColor;
+            BorderColor3 = Library.OutlineColor;
+            BorderMode = Enum.BorderMode.Inset;
+            AutoButtonColor = false;
+            Active = true;
+            Position = UDim2.fromScale(0.5, 0.5);
+            Size = UDim2.fromOffset(400, 0);
+            AutomaticSize = Enum.AutomaticSize.Y;
+            Text = '';
+            ZIndex = 9001;
+            Parent = DialogOverlay;
+        });
+        Library:AddToRegistry(DialogFrame, {
+            BackgroundColor3 = 'MainColor';
+            BorderColor3 = 'OutlineColor';
+        });
+        Library:Create('UIPadding', {
+            PaddingBottom = UDim.new(0, 15);
+            PaddingLeft = UDim.new(0, 15);
+            PaddingRight = UDim.new(0, 15);
+            PaddingTop = UDim.new(0, 15);
+            Parent = DialogFrame;
+        });
+        Library:Create('UIListLayout', {
+            Padding = UDim.new(0, 10);
+            SortOrder = Enum.SortOrder.LayoutOrder;
+            Parent = DialogFrame;
+        });
+        local DialogScale = Library:Create('UIScale', {
+            Scale = 0.95;
+            Parent = DialogFrame;
+        });
+        TweenService:Create(DialogScale, Library.TweenInfo, {
+            Scale = 1;
+        }):Play();
+
+        local HeaderContainer = Library:Create('Frame', {
+            BackgroundTransparency = 1;
+            AutomaticSize = Enum.AutomaticSize.Y;
+            Size = UDim2.new(1, 0, 0, 0);
+            LayoutOrder = 1;
+            ZIndex = 9002;
+            Parent = DialogFrame;
+        });
+        Library:Create('UIListLayout', {
+            Padding = UDim.new(0, 6);
+            SortOrder = Enum.SortOrder.LayoutOrder;
+            Parent = HeaderContainer;
+        });
+
+        local TitleRow = Library:Create('Frame', {
+            BackgroundTransparency = 1;
+            AutomaticSize = Enum.AutomaticSize.Y;
+            Size = UDim2.new(1, 0, 0, 20);
+            LayoutOrder = 1;
+            ZIndex = 9002;
+            Parent = HeaderContainer;
+        });
+        Library:Create('UIListLayout', {
+            FillDirection = Enum.FillDirection.Horizontal;
+            HorizontalAlignment = Enum.HorizontalAlignment.Left;
+            VerticalAlignment = Enum.VerticalAlignment.Center;
+            SortOrder = Enum.SortOrder.LayoutOrder;
+            Padding = UDim.new(0, 6);
+            Parent = TitleRow;
+        });
+
+        local TitleColor = ResolveColor(Info.TitleColor) or Library.FontColor
+        local IconColor = ResolveColor(Info.IconColor) or TitleColor
+        local ParsedIcon = Library:GetCustomIcon(Info.Icon or Info.IconName)
+        if ParsedIcon then
+            Library:Create('ImageLabel', {
+                BackgroundTransparency = 1;
+                Image = ParsedIcon.Url;
+                ImageColor3 = ParsedIcon.Custom and IconColor or TitleColor;
+                ImageRectOffset = ParsedIcon.ImageRectOffset;
+                ImageRectSize = ParsedIcon.ImageRectSize;
+                ImageTransparency = 0;
+                ScaleType = Enum.ScaleType.Fit;
+                Size = UDim2.fromOffset(16, 16);
+                LayoutOrder = 1;
+                ZIndex = 9002;
+                Parent = TitleRow;
+            });
+        end
+
+        local TitleLabel = Library:CreateLabel({
+            BackgroundTransparency = 1;
+            AutomaticSize = Enum.AutomaticSize.XY;
+            Size = UDim2.new(1, 0, 0, 18);
+            Text = Info.Title;
+            TextColor3 = TitleColor;
+            TextSize = 18;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            LayoutOrder = 2;
+            ZIndex = 9002;
+            Parent = TitleRow;
+        });
+
+        local DescriptionColor = ResolveColor(Info.DescriptionColor) or Library.FontColor
+        local DescriptionLabel = Library:CreateLabel({
+            BackgroundTransparency = 1;
+            AutomaticSize = Enum.AutomaticSize.Y;
+            Size = UDim2.new(1, 0, 0, 14);
+            Text = Info.Description;
+            TextColor3 = DescriptionColor;
+            TextSize = 14;
+            TextTransparency = Info.DescriptionColor and 0 or 0.2;
+            TextWrapped = true;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            LayoutOrder = 2;
+            ZIndex = 9002;
+            Parent = HeaderContainer;
+        });
+
+        local DialogContainer = Library:Create('Frame', {
+            BackgroundTransparency = 1;
+            AutomaticSize = Enum.AutomaticSize.Y;
+            Size = UDim2.new(1, 0, 0, 0);
+            LayoutOrder = 2;
+            ZIndex = 9002;
+            Parent = DialogFrame;
+        });
+        Library:Create('UIListLayout', {
+            Padding = UDim.new(0, 8);
+            SortOrder = Enum.SortOrder.LayoutOrder;
+            Parent = DialogContainer;
+        });
+
+        local Separator = Library:Create('Frame', {
+            BackgroundColor3 = Library.OutlineColor;
+            BorderSizePixel = 0;
+            LayoutOrder = 3;
+            Size = UDim2.new(1, 0, 0, 1);
+            ZIndex = 9002;
+            Parent = DialogFrame;
+        });
+        Library:AddToRegistry(Separator, {
+            BackgroundColor3 = 'OutlineColor';
+        });
+
+        local ButtonsHolder = Library:Create('Frame', {
+            BackgroundTransparency = 1;
+            AutomaticSize = Enum.AutomaticSize.Y;
+            Size = UDim2.new(1, 0, 0, 0);
+            LayoutOrder = 4;
+            ZIndex = 9002;
+            Parent = DialogFrame;
+        });
+        Library:Create('UIListLayout', {
+            Padding = UDim.new(0, 8);
+            FillDirection = Enum.FillDirection.Horizontal;
+            HorizontalAlignment = Enum.HorizontalAlignment.Right;
+            Wraps = true;
+            SortOrder = Enum.SortOrder.LayoutOrder;
+            Parent = ButtonsHolder;
+        });
+        Library:Create('UIPadding', {
+            PaddingTop = UDim.new(0, 5);
+            Parent = ButtonsHolder;
+        });
+
+        local FooterButtonsList = {}
+        local Dialog = {
+            Container = DialogContainer;
+            Elements = {};
+            FooterButtons = FooterButtonsList;
+            Overlay = DialogOverlay;
+            Frame = DialogFrame;
+        }
+
+        function Dialog:Resize()
+            local Viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080)
+            local MinWidth = math.max(320, math.min(400, Viewport.X - 20))
+            local MaxWidth = math.max(MinWidth, math.floor(math.min(Viewport.X * 0.75, 520)))
+            local RequiredWidth = MinWidth
+
+            for _, BtnWrap in next, FooterButtonsList do
+                if BtnWrap and BtnWrap.Container and BtnWrap.Container.Size then
+                    RequiredWidth = math.max(RequiredWidth, BtnWrap.Container.Size.X.Offset)
+                end
+            end
+
+            local TargetWidth = math.max(MinWidth, math.min(RequiredWidth, MaxWidth))
+            DialogFrame.Size = UDim2.fromOffset(TargetWidth, 0)
+
+            local TitleWidth = Library:GetTextBounds(TitleLabel.Text, Library.Font, 18, TargetWidth - 30)
+            if TitleWidth and TitleWidth > 0 then
+                RequiredWidth = math.max(RequiredWidth, TitleWidth + 30)
+                TargetWidth = math.max(MinWidth, math.min(RequiredWidth, MaxWidth))
+                DialogFrame.Size = UDim2.fromOffset(TargetWidth, 0)
+            end
+
+            local HasButtons = false
+            local TotalButtonWidth = 0
+            local ButtonCount = 0
+            for _, BtnWrap in next, FooterButtonsList do
+                if BtnWrap and BtnWrap.Container then
+                    HasButtons = true
+                    ButtonCount = ButtonCount + 1
+                    TotalButtonWidth = TotalButtonWidth + BtnWrap.Container.Size.X.Offset
+                end
+            end
+
+            local ButtonTargetWidth = math.max(MinWidth, math.min(math.max(RequiredWidth, TotalButtonWidth + ((ButtonCount - 1) * 8) + 30), MaxWidth))
+            DialogFrame.Size = UDim2.fromOffset(ButtonTargetWidth, 0)
+
+            Separator.Visible = HasButtons
+            ButtonsHolder.Visible = HasButtons
+        end
+
+        function Dialog:SetTitle(Title)
+            TitleLabel.Text = tostring(Title or '')
+            Dialog:Resize()
+        end
+
+        function Dialog:SetDescription(Description)
+            DescriptionLabel.Text = tostring(Description or '')
+            Dialog:Resize()
+        end
+
+        function Dialog:Dismiss()
+            if not DialogOverlay.Parent then
+                if Library.ActiveDialog == Dialog then
+                    Library.ActiveDialog = nil
+                end
+                if Library.Dialogues[DialogId] == Dialog then
+                    Library.Dialogues[DialogId] = nil
+                end
+                return
+            end
+
+            if Library.ActiveDialog == Dialog then
+                Library.ActiveDialog = nil
+            end
+            if Library.Dialogues[DialogId] == Dialog then
+                Library.Dialogues[DialogId] = nil
+            end
+
+            local CloseTween = TweenService:Create(DialogScale, Library.TweenInfo, {
+                Scale = 0.95;
+            })
+            TweenService:Create(DialogOverlay, Library.TweenInfo, {
+                BackgroundTransparency = 1;
+            }):Play()
+            CloseTween:Play()
+
+            task.delay(Library.TweenInfo.Time, function()
+                if DialogOverlay.Parent then
+                    DialogOverlay:Destroy()
+                end
+            end)
+        end
+
+        DialogOverlay.MouseButton1Click:Connect(function()
+            if Info.OutsideClickDismiss then
+                Dialog:Dismiss()
+            end
+        end)
+
+        function Dialog:RemoveFooterButton(ButtonIdx)
+            if FooterButtonsList[ButtonIdx] then
+                if FooterButtonsList[ButtonIdx].Container then
+                    FooterButtonsList[ButtonIdx].Container:Destroy()
+                end
+                FooterButtonsList[ButtonIdx] = nil
+                Dialog:Resize()
+            end
+        end
+
+        function Dialog:SetButtonDisabled(ButtonIdx, Disabled)
+            if FooterButtonsList[ButtonIdx] and type(FooterButtonsList[ButtonIdx].SetDisabled) == 'function' then
+                FooterButtonsList[ButtonIdx]:SetDisabled(Disabled)
+            end
+        end
+
+        function Dialog:SetButtonOrder(ButtonIdx, Order)
+            if FooterButtonsList[ButtonIdx] and FooterButtonsList[ButtonIdx].Container then
+                FooterButtonsList[ButtonIdx].Container.LayoutOrder = Order
+                Dialog:Resize()
+            end
+        end
+
+        function Dialog:AddFooterButton(ButtonIdx, ButtonInfo)
+            Dialog:RemoveFooterButton(ButtonIdx)
+
+            if type(ButtonInfo) ~= 'table' then
+                ButtonInfo = {
+                    Title = tostring(ButtonInfo or ButtonIdx);
+                }
+            end
+
+            local WaitTime = tonumber(ButtonInfo.WaitTime) or 0
+            local Variant = tostring(ButtonInfo.Variant or 'Primary')
+            local ButtonText = tostring(ButtonInfo.Title or ButtonIdx or 'Button')
+
+            local VariantMap = {
+                Primary = {
+                    Color = 'AccentColor';
+                    Outline = 'AccentColor';
+                };
+                Secondary = {
+                    Color = 'MainColor';
+                    Outline = 'OutlineColor';
+                };
+                Destructive = {
+                    Color = 'RiskColor';
+                    Outline = 'RiskColor';
+                };
+                Ghost = {
+                    Color = 'BackgroundColor';
+                    Outline = 'BackgroundColor';
+                };
+            }
+            local Theme = VariantMap[Variant] or VariantMap.Primary
+
+            local ButtonContainer = Library:Create('Frame', {
+                BackgroundTransparency = 1;
+                Size = UDim2.fromOffset(0, 26);
+                LayoutOrder = tonumber(ButtonInfo.Order) or 0;
+                ZIndex = 9002;
+                Parent = ButtonsHolder;
+            });
+
+            local ButtonOuter = Library:Create('Frame', {
+                BackgroundColor3 = Color3.new(0, 0, 0);
+                BorderColor3 = Color3.new(0, 0, 0);
+                BorderSizePixel = 0;
+                Size = UDim2.fromOffset(0, 26);
+                ZIndex = 9003;
+                Parent = ButtonContainer;
+            });
+
+            local ButtonInner = Library:Create('Frame', {
+                BackgroundColor3 = Library[Theme.Color];
+                BorderColor3 = Library[Theme.Outline];
+                BorderMode = Enum.BorderMode.Inset;
+                BorderSizePixel = 0;
+                Size = UDim2.new(1, 0, 1, 0);
+                ZIndex = 9004;
+                Parent = ButtonOuter;
+            });
+            Library:AddToRegistry(ButtonInner, {
+                BackgroundColor3 = Theme.Color;
+                BorderColor3 = Theme.Outline;
+            });
+
+            local Button = Library:Create('TextButton', {
+                BackgroundTransparency = 1;
+                AutoButtonColor = false;
+                Size = UDim2.new(1, 0, 1, 0);
+                Text = '';
+                ZIndex = 9005;
+                Parent = ButtonInner;
+            });
+
+            local ButtonLabel = Library:CreateLabel({
+                BackgroundTransparency = 1;
+                Size = UDim2.new(1, 0, 1, 0);
+                Text = ButtonText;
+                TextColor3 = Library.FontColor;
+                TextSize = 14;
+                TextTransparency = WaitTime > 0 and 0.5 or 0;
+                ZIndex = 9006;
+                Parent = Button;
+            });
+
+            local LabelWidth = Library:GetTextBounds(ButtonText, Library.Font, 14, 250)
+            ButtonContainer.Size = UDim2.fromOffset(LabelWidth + 30, 26)
+            ButtonOuter.Size = UDim2.fromOffset(LabelWidth + 30, 26)
+
+            local ProgressBar = nil
+            if WaitTime > 0 then
+                ProgressBar = Library:Create('Frame', {
+                    BackgroundColor3 = Library.AccentColor;
+                    BorderSizePixel = 0;
+                    Position = UDim2.new(0, 0, 1, -2);
+                    Size = UDim2.new(0, 0, 0, 2);
+                    ZIndex = 9006;
+                    Parent = ButtonInner;
+                });
+                Library:AddToRegistry(ProgressBar, {
+                    BackgroundColor3 = 'AccentColor';
+                });
+            end
+
+            local IsActive = WaitTime <= 0
+            local ButtonWrap = {
+                Container = ButtonContainer;
+                Outer = ButtonOuter;
+                Inner = ButtonInner;
+                Button = Button;
+                Label = ButtonLabel;
+                ProgressBar = ProgressBar;
+            }
+
+            function ButtonWrap:SetDisabled(Disabled)
+                IsActive = not Disabled
+                ButtonLabel.TextTransparency = Disabled and 0.5 or 0
+                ButtonInner.BackgroundTransparency = Disabled and 0.5 or 0
+                if Disabled then
+                    ButtonOuter.BorderColor3 = Color3.new(0, 0, 0)
+                end
+                Button.Active = not Disabled
+            end
+
+            Button.MouseEnter:Connect(function()
+                if not IsActive then
+                    return
+                end
+
+                ButtonOuter.BorderColor3 = Library.AccentColor
+            end)
+            Button.MouseLeave:Connect(function()
+                ButtonOuter.BorderColor3 = Color3.new(0, 0, 0)
+            end)
+            Button.MouseButton1Click:Connect(function()
+                if not IsActive then
+                    return
+                end
+
+                if ButtonInfo.Callback then
+                    Library:SafeCallback(ButtonInfo.Callback, Dialog)
+                end
+
+                if Info.AutoDismiss then
+                    Dialog:Dismiss()
+                end
+            end)
+
+            if WaitTime > 0 then
+                ButtonWrap:SetDisabled(true)
+                TweenService:Create(ProgressBar, TweenInfo.new(WaitTime, Enum.EasingStyle.Linear), {
+                    Size = UDim2.new(1, 0, 0, 2);
+                }):Play()
+
+                task.delay(WaitTime, function()
+                    if not DialogOverlay.Parent then
+                        return
+                    end
+
+                    ButtonWrap:SetDisabled(false)
+                    if ProgressBar then
+                        TweenService:Create(ProgressBar, Library.TweenInfo, {
+                            BackgroundTransparency = 1;
+                        }):Play()
+                    end
+                end)
+            end
+
+            FooterButtonsList[ButtonIdx] = ButtonWrap
+            Dialog:Resize()
+            return ButtonWrap
+        end
+
+        if #Info.FooterButtons > 0 then
+            for BIdx, BInfo in ipairs(Info.FooterButtons) do
+                if type(BIdx) == 'number' and type(BInfo) == 'table' and BInfo.Id then
+                    BIdx = BInfo.Id
+                end
+                Dialog:AddFooterButton(BIdx, BInfo)
+            end
+        else
+            for BIdx, BInfo in next, Info.FooterButtons do
+                if type(BIdx) == 'number' and type(BInfo) == 'table' and BInfo.Id then
+                    BIdx = BInfo.Id
+                end
+                Dialog:AddFooterButton(BIdx, BInfo)
+            end
+        end
+
+        Dialog:Resize()
+
+        setmetatable(Dialog, BaseGroupbox);
+        Library.Dialogues[DialogId] = Dialog
+        Library.ActiveDialog = Dialog
+
+        return Dialog;
+    end;
+
+    Window.AddDialogue = Window.AddDialog
+
     local ModalElement = Library:Create('TextButton', {
         BackgroundTransparency = 1;
         Size = UDim2.new(0, 0, 0, 0);
@@ -4304,6 +4846,9 @@ function Library:CreateWindow(...)
         Library.Toggled = not Library.Toggled;
         ModalElement.Modal = Library.Toggled;
         Outer.Visible = Library.Toggled;
+        if not Library.Toggled and Library.ActiveDialog then
+            Library.ActiveDialog:Dismiss()
+        end
         if Library.Toggled then
             task.spawn(function()
                 local State = InputService.MouseIconEnabled;
