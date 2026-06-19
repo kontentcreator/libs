@@ -4401,9 +4401,10 @@ function Library:CreateWindow(...)
                 return
             end
 
+            local OverlayPos = DialogOverlay.AbsolutePosition
             local FramePos = DialogFrame.AbsolutePosition
             local FrameSize = DialogFrame.AbsoluteSize
-            DialogHighlight.Position = UDim2.fromOffset(FramePos.X + 1, FramePos.Y + 1)
+            DialogHighlight.Position = UDim2.fromOffset(FramePos.X - OverlayPos.X + 1, FramePos.Y - OverlayPos.Y + 1)
             DialogHighlight.Size = UDim2.fromOffset(math.max(0, FrameSize.X - 2), 2)
         end
         Library:Create('UIPadding', {
