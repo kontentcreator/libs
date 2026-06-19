@@ -50,8 +50,8 @@ local Library = {
     ScreenGui = ScreenGui;
 
     Toggled = false;
-    WireframeDrag = false;
-    UseBlur = false;
+    WireframeDrag = true;
+    UseBlur = true;
     BlurSize = 15;
 
     KeybindMode = 'All';
@@ -1954,7 +1954,6 @@ do
         end
 
         Button.Outer, Button.Inner, Button.Label = CreateBaseButton(Button)
-        -- apply initial disabled visuals if provided
         Button.Outer.Active = not Button.Disabled
         Button.Label.TextTransparency = Button.Disabled and 0.8 or 0
         Button.Outer.Parent = Container
@@ -1992,7 +1991,6 @@ do
                 SubButton:AddTooltip(SubButton.Tooltip)
             end
 
-            -- SubButton public APIs
             function SubButton:SetDisabled(Disabled)
                 SubButton.Disabled = Disabled
                 SubButton.Outer.Active = not Disabled
@@ -2043,7 +2041,7 @@ do
         end
 
         function Button:UpdateColors()
-            -- kept for API parity with obsidian; library-wide color updates handle visuals
+
         end
 
         Groupbox:AddBlank(5);
@@ -2467,7 +2465,6 @@ do
             ZIndex = 9;
             Parent = SliderInner;
         });
-        -- apply disabled visuals/state
         SliderOuter.Active = not Slider.Disabled
         DisplayLabel.TextTransparency = Slider.Disabled and 0.8 or 0
         Fill.BackgroundTransparency = Slider.Disabled and 0.6 or 0
@@ -2509,7 +2506,6 @@ do
             else
                 local formatted = safeFormatDisplay(Slider, Slider.Value)
                 if formatted then
-                    -- if custom formatter returns a full string, use it as-is
                     DisplayLabel.Text = formatted
                 else
                     DisplayLabel.Text = string.format('%s/%s', Slider.Value .. Suffix, Slider.Max .. Suffix)
@@ -2652,7 +2648,6 @@ do
             return nil
         end
 
-        -- normalize DisabledValues to always be a table (allow single value)
         local dv = Info.DisabledValues
         if dv == nil then
             Dropdown.DisabledValues = {}
@@ -2801,7 +2796,6 @@ do
             end
             Dropdown:Display();
         end
-        -- apply disabled visuals/state
         DropdownOuter.Active = not Dropdown.Disabled
         ItemList.TextTransparency = Dropdown.Disabled and 0.8 or 0
         DropdownArrow.ImageTransparency = Dropdown.Disabled and 0.6 or 0
@@ -3105,7 +3099,6 @@ do
         end;
 
         function Dropdown:SetDisabledValues(NewDisabledValues)
-            -- normalize input to table
             if NewDisabledValues == nil then
                 Dropdown.DisabledValues = {}
             elseif type(NewDisabledValues) ~= 'table' then
@@ -3114,7 +3107,6 @@ do
                 Dropdown.DisabledValues = NewDisabledValues
             end
 
-            -- remove any active selections that are now disabled
             if Dropdown.Multi then
                 for Value, _ in next, Dropdown.Value do
                     if table.find(Dropdown.DisabledValues or {}, Value) then
