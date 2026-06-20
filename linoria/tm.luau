@@ -14,6 +14,7 @@ local ThemeManager = {} do
 		['Tokyo Night'] 	= { 6, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"191925","AccentColor":"6759b3","BackgroundColor":"16161f","OutlineColor":"323232"}') },
 		['Ubuntu'] 			= { 7, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"3e3e3e","AccentColor":"e2581e","BackgroundColor":"323232","OutlineColor":"191919"}') },
 		['Quartz'] 			= { 8, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"232330","AccentColor":"426e87","BackgroundColor":"1d1b26","OutlineColor":"27232f"}') },
+		['Linoria UE'] 		= { 9, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"181818","AccentColor":"4777b6","BackgroundColor":"141414","OutlineColor":"1f1f1f"}') },
 	}
 
 	function ThemeManager:ApplyTheme(theme)
@@ -38,7 +39,7 @@ local ThemeManager = {} do
 
 	function ThemeManager:ThemeUpdate()
 		-- This allows us to force apply themes without loading the themes tab :)
-		local options = { "FontColor", "MainColor", "AccentColor", "BackgroundColor", "OutlineColor" }
+		local options = { "FontColor", "MainColor", "AccentColor", "BackgroundColor", "OutlineColor", "RiskColor" }
 		for i, field in next, options do
 			if Options and Options[field] then
 				self.Library[field] = Options[field].Value
@@ -76,12 +77,13 @@ local ThemeManager = {} do
 		writefile(self.Folder .. '/themes/default.txt', theme)
 	end
 
-	function ThemeManager:CreateThemeManager(groupbox)
-		groupbox:AddLabel('Background color'):AddColorPicker('BackgroundColor', { Default = self.Library.BackgroundColor });
-		groupbox:AddLabel('Main color')	:AddColorPicker('MainColor', { Default = self.Library.MainColor });
-		groupbox:AddLabel('Accent color'):AddColorPicker('AccentColor', { Default = self.Library.AccentColor });
-		groupbox:AddLabel('Outline color'):AddColorPicker('OutlineColor', { Default = self.Library.OutlineColor });
-		groupbox:AddLabel('Font color')	:AddColorPicker('FontColor', { Default = self.Library.FontColor });
+	function ThemeManager:CreateThemeManager(tabbox)
+		tabbox:AddLabel('Background color'):AddColorPicker('BackgroundColor', { Default = self.Library.BackgroundColor });
+		tabbox:AddLabel('Main color')	:AddColorPicker('MainColor', { Default = self.Library.MainColor });
+		tabbox:AddLabel('Accent color'):AddColorPicker('AccentColor', { Default = self.Library.AccentColor });
+		tabbox:AddLabel('Outline color'):AddColorPicker('OutlineColor', { Default = self.Library.OutlineColor });
+		tabbox:AddLabel('Text color')	:AddColorPicker('FontColor', { Default = self.Library.FontColor });
+		tabbox:AddLabel('Risk Text color')	:AddColorPicker('RiskColor', { Default = self.Library.RiskColor });
 
 		local ThemesArray = {}
 		for Name, Theme in next, self.BuiltInThemes do
@@ -90,10 +92,9 @@ local ThemeManager = {} do
 
 		table.sort(ThemesArray, function(a, b) return self.BuiltInThemes[a][1] < self.BuiltInThemes[b][1] end)
 
-		groupbox:AddDivider()
-		groupbox:AddDropdown('ThemeManager_ThemeList', { Text = 'Theme list', Values = ThemesArray, Default = 1 })
-
-		groupbox:AddButton('Set as default', function()
+		tabbox:AddDivider()
+		tabbox:AddDropdown('ThemeManager_ThemeList', { Text = 'Theme list', Values = ThemesArray, Default = 1 })
+		tabbox:AddButton('Set as default', function()
 			self:SaveDefault(Options.ThemeManager_ThemeList.Value)
 			self.Library:Notify(string.format('Set default theme to %q', Options.ThemeManager_ThemeList.Value))
 		end)
@@ -102,12 +103,12 @@ local ThemeManager = {} do
 			self:ApplyTheme(Options.ThemeManager_ThemeList.Value)
 		end)
 
-		groupbox:AddDivider()
-		groupbox:AddInput('ThemeManager_CustomThemeName', { Text = 'Custom theme name' })
-		groupbox:AddDropdown('ThemeManager_CustomThemeList', { Text = 'Custom themes', Values = self:ReloadCustomThemes(), AllowNull = true, Default = 1 })
-		groupbox:AddDivider()
+		tabbox:AddDivider()
+		tabbox:AddInput('ThemeManager_CustomThemeName', { Text = 'Custom theme name' })
+		tabbox:AddDropdown('ThemeManager_CustomThemeList', { Text = 'Custom themes', Values = self:ReloadCustomThemes(), AllowNull = true, Default = 1 })
+		tabbox:AddDivider()
 		
-		groupbox:AddButton('Save theme', function() 
+		tabbox:AddButton('Save theme', function() 
 			self:SaveCustomTheme(Options.ThemeManager_CustomThemeName.Value)
 
 			Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
@@ -116,12 +117,12 @@ local ThemeManager = {} do
 			self:ApplyTheme(Options.ThemeManager_CustomThemeList.Value) 
 		end)
 
-		groupbox:AddButton('Refresh list', function()
+		tabbox:AddButton('Refresh list', function()
 			Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
 			Options.ThemeManager_CustomThemeList:SetValue(nil)
 		end)
 
-		groupbox:AddButton('Set as default', function()
+		tabbox:AddButton('Set as default', function()
 			if Options.ThemeManager_CustomThemeList.Value ~= nil and Options.ThemeManager_CustomThemeList.Value ~= '' then
 				self:SaveDefault(Options.ThemeManager_CustomThemeList.Value)
 				self.Library:Notify(string.format('Set default theme to %q', Options.ThemeManager_CustomThemeList.Value))
@@ -139,6 +140,7 @@ local ThemeManager = {} do
 		Options.AccentColor:OnChanged(UpdateTheme)
 		Options.OutlineColor:OnChanged(UpdateTheme)
 		Options.FontColor:OnChanged(UpdateTheme)
+		Options.RiskColor:OnChanged(UpdateTheme)
 	end
 
 	function ThemeManager:GetCustomTheme(file)
@@ -163,7 +165,7 @@ local ThemeManager = {} do
 		end
 
 		local theme = {}
-		local fields = { "FontColor", "MainColor", "AccentColor", "BackgroundColor", "OutlineColor" }
+		local fields = { "FontColor", "MainColor", "AccentColor", "BackgroundColor", "OutlineColor", "RiskColor" }
 
 		for _, field in next, fields do
 			theme[field] = Options[field].Value:ToHex()
@@ -229,20 +231,20 @@ local ThemeManager = {} do
 		self:BuildFolderTree()
 	end
 
-	function ThemeManager:CreateGroupBox(tab)
+	function ThemeManager:CreateTabBox(tab)
 		assert(self.Library, 'Must set ThemeManager.Library first!')
-		return tab:AddLeftGroupbox('Themes')
+		return tab:AddTab("Tab Name", "home")
 	end
 
 	function ThemeManager:ApplyToTab(tab)
 		assert(self.Library, 'Must set ThemeManager.Library first!')
-		local groupbox = self:CreateGroupBox(tab)
-		self:CreateThemeManager(groupbox)
+		local tabbox = self:CreateTabBox(tab)
+		self:CreateThemeManager(tabbox)
 	end
 
-	function ThemeManager:ApplyToGroupbox(groupbox)
+	function ThemeManager:ApplyToGroupbox(tabbox)
 		assert(self.Library, 'Must set ThemeManager.Library first!')
-		self:CreateThemeManager(groupbox)
+		self:CreateThemeManager(tabbox)
 	end
 
 	ThemeManager:BuildFolderTree()
