@@ -51,8 +51,12 @@ local Library = {
 
     Toggled = false;
     WireframeDrag = false;
+    WireframeDragging = false;
     UseBlur = false;
+    BackgroundBlurEnabled = false;
     BlurSize = 15;
+    BlurStrength = 15;
+    BackgroundBlurStrength = 15;
 
     KeybindMode = 'Active';
 
@@ -73,17 +77,26 @@ Library.BlurEffect.Enabled = true
 pcall(function() Library.BlurEffect.Parent = Lighting end)
 
 function Library:UpdateBlur()
-    if Library.UseBlur then
+    local UseBlur = Library.UseBlur or Library.BackgroundBlurEnabled
+    local BlurSize = Library.BlurSize or Library.BackgroundBlurStrength or Library.BlurStrength
+
+    Library.UseBlur = UseBlur
+    Library.BackgroundBlurEnabled = UseBlur
+    Library.BlurSize = BlurSize
+    Library.BlurStrength = BlurSize
+    Library.BackgroundBlurStrength = BlurSize
+
+    if UseBlur then
         if Library.Toggled then
             Library.BlurEffect.Enabled = true
-            TweenService:Create(Library.BlurEffect, TweenInfo.new(0.2, Enum.EasingStyle.Linear), {Size = Library.BlurSize}):Play()
+            TweenService:Create(Library.BlurEffect, TweenInfo.new(0.2, Enum.EasingStyle.Linear), {Size = BlurSize}):Play()
         end
     else
         local tween = TweenService:Create(Library.BlurEffect, TweenInfo.new(0.2, Enum.EasingStyle.Linear), {Size = 0})
         tween:Play()
     
         task.delay(0.2, function()
-            if not Library.UseBlur then
+            if not (Library.UseBlur or Library.BackgroundBlurEnabled) then
                 Library.BlurEffect.Enabled = false
             end
         end)
@@ -360,7 +373,7 @@ function Library:MakeDraggable(Instance, Cutoff, IsWindow)
                 if Change.UserInputType == Enum.UserInputType.MouseMovement or Change == Input then
                     local Delta = Change.Position - DragStart
                     
-                    if IsWindow and Library.WireframeDrag then
+                    if IsWindow and (Library.WireframeDrag or Library.WireframeDragging) then
                         if not HasMoved and Delta.Magnitude > 2 then
                             HasMoved = true
                             
@@ -403,7 +416,7 @@ function Library:MakeDraggable(Instance, Cutoff, IsWindow)
                     ChangedConn:Disconnect()
                     EndedConn:Disconnect()
                     
-                    if IsWindow and Library.WireframeDrag and HasMoved and Wireframe then
+                    if IsWindow and (Library.WireframeDrag or Library.WireframeDragging) and HasMoved and Wireframe then
                         Instance.Position = Wireframe.Position
                         
                         Wireframe:Destroy()
@@ -5005,10 +5018,10 @@ function Library:CreateWindow(...)
                 CursorOutline:Remove();
             end);
         end;
-        if Library.UseBlur then
+        if Library.UseBlur or Library.BackgroundBlurEnabled then
             if Library.Toggled then
                 Library.BlurEffect.Enabled = true
-                Library.BlurEffect.Size = Library.BlurSize
+                Library.BlurEffect.Size = Library.BlurSize or Library.BackgroundBlurStrength or Library.BlurStrength
             else
                 Library.BlurEffect.Size = 0
                 Library.BlurEffect.Enabled = false
