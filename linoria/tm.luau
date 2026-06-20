@@ -87,6 +87,13 @@ local ThemeManager = {} do
 
 		table.sort(ThemesArray, function(a, b) return self.BuiltInThemes[a][1] < self.BuiltInThemes[b][1] end)
 
+		themeGroupbox:AddLabel('Background color'):AddColorPicker('BackgroundColor', { Default = self.Library.BackgroundColor });
+		themeGroupbox:AddLabel('Main color')	:AddColorPicker('MainColor', { Default = self.Library.MainColor });
+		themeGroupbox:AddLabel('Accent color'):AddColorPicker('AccentColor', { Default = self.Library.AccentColor });
+		themeGroupbox:AddLabel('Outline color'):AddColorPicker('OutlineColor', { Default = self.Library.OutlineColor });
+		themeGroupbox:AddLabel('Text color')	:AddColorPicker('FontColor', { Default = self.Library.FontColor });
+		themeGroupbox:AddLabel('Risk Text color')	:AddColorPicker('RiskColor', { Default = self.Library.RiskColor });
+
 		themeGroupbox:AddDropdown('ThemeManager_ThemeList', { Text = 'Theme list', Values = ThemesArray, Default = 1 })
 
 		themeGroupbox:AddButton('Set as default', function()
@@ -97,13 +104,6 @@ local ThemeManager = {} do
 		Options.ThemeManager_ThemeList:OnChanged(function()
 			self:ApplyTheme(Options.ThemeManager_ThemeList.Value)
 		end)
-
-		themeGroupbox:AddLabel('Background color'):AddColorPicker('BackgroundColor', { Default = self.Library.BackgroundColor });
-		themeGroupbox:AddLabel('Main color')	:AddColorPicker('MainColor', { Default = self.Library.MainColor });
-		themeGroupbox:AddLabel('Accent color'):AddColorPicker('AccentColor', { Default = self.Library.AccentColor });
-		themeGroupbox:AddLabel('Outline color'):AddColorPicker('OutlineColor', { Default = self.Library.OutlineColor });
-		themeGroupbox:AddLabel('Text color')	:AddColorPicker('FontColor', { Default = self.Library.FontColor });
-		themeGroupbox:AddLabel('Risk Text color')	:AddColorPicker('RiskColor', { Default = self.Library.RiskColor });
 
 		themeGroupbox:AddDivider()
 		themeGroupbox:AddInput('ThemeManager_CustomThemeName', { Text = 'Custom theme name' })
@@ -131,25 +131,36 @@ local ThemeManager = {} do
 			end
 		end)
 
-		backgroundGroupbox:AddToggle('BackgroundBlur', { Text = 'Enable Background Blur', Default = false, Tooltip = 'Enabling this will make the background blurry, which can help with visibility of the menu on some games.', 
-			Callback = function(value)
-				self.Library.UseBlur = value
-			end
-		})
+		if backgroundGroupbox then
+			backgroundGroupbox:AddToggle('BackgroundBlur', { Text = 'Enable Background Blur', Default = self.Library.UseBlur or self.Library.BackgroundBlurEnabled, Tooltip = 'Enabling this will make the background blurry, which can help with visibility of the menu on some games.', 
+				Callback = function(value)
+					self.Library.UseBlur = value
+					self.Library.BackgroundBlurEnabled = value
+					if self.Library.UpdateBlur then
+						self.Library:UpdateBlur()
+					end
+				end
+			})
 
-		backgroundGroupbox:AddSlider('BackgroundBlurStrength', { Text = 'Background Blur Strength', Default = 5, Min = 0, Max = 20, Rounding = 0.1, Tooltip = 'How strong the background blur should be (only works if Background Blur is enabled)', 
-			Callback = function(value)
-				self.Library.BlurStrength = value
-			end
-		})
+			backgroundGroupbox:AddSlider('BackgroundBlurStrength', { Text = 'Background Blur Strength', Default = self.Library.BlurSize or self.Library.BackgroundBlurStrength or self.Library.BlurStrength, Min = 0, Max = 20, Rounding = 0.1, Tooltip = 'How strong the background blur should be (only works if Background Blur is enabled)', 
+				Callback = function(value)
+					self.Library.BlurSize = value
+					self.Library.BackgroundBlurStrength = value
+					if self.Library.UpdateBlur then
+						self.Library:UpdateBlur()
+					end
+				end
+			})
 
-		backgroundGroupbox:AddDivider()
+			backgroundGroupbox:AddDivider()
 
-		backgroundGroupbox:AddToggle('WireframeDragging', { Text = 'Enable Wireframe Dragging', Default = false, Tooltip = 'Enabling this will make the background wireframe when dragging the menu, which can improve performance on lower-end systems.', 
-			Callback = function(value)
-				self.Library.WireframeDragging = value
-			end
-		})
+			backgroundGroupbox:AddToggle('WireframeDragging', { Text = 'Enable Wireframe Dragging', Default = self.Library.WireframeDrag or self.Library.WireframeDragging, Tooltip = 'Enabling this will make the background wireframe when dragging the menu, which can improve performance on lower-end systems.', 
+				Callback = function(value)
+					self.Library.WireframeDrag = value
+					self.Library.WireframeDragging = value
+				end
+			})
+		end
 		
 			
 
