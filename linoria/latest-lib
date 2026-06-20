@@ -54,9 +54,9 @@ local Library = {
     WireframeDragging = false;
     UseBlur = false;
     BackgroundBlurEnabled = false;
-    BlurSize = 15;
-    BlurStrength = 15;
-    BackgroundBlurStrength = 15;
+    BlurSize = 0;
+    BlurStrength = 0;
+    BackgroundBlurStrength = 0;
 
     KeybindMode = 'Active';
 
