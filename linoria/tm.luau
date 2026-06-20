@@ -98,6 +98,13 @@ local ThemeManager = {} do
 			self:ApplyTheme(Options.ThemeManager_ThemeList.Value)
 		end)
 
+		themeGroupbox:AddLabel('Background color'):AddColorPicker('BackgroundColor', { Default = self.Library.BackgroundColor });
+		themeGroupbox:AddLabel('Main color')	:AddColorPicker('MainColor', { Default = self.Library.MainColor });
+		themeGroupbox:AddLabel('Accent color'):AddColorPicker('AccentColor', { Default = self.Library.AccentColor });
+		themeGroupbox:AddLabel('Outline color'):AddColorPicker('OutlineColor', { Default = self.Library.OutlineColor });
+		themeGroupbox:AddLabel('Text color')	:AddColorPicker('FontColor', { Default = self.Library.FontColor });
+		themeGroupbox:AddLabel('Risk Text color')	:AddColorPicker('RiskColor', { Default = self.Library.RiskColor });
+
 		themeGroupbox:AddDivider()
 		themeGroupbox:AddInput('ThemeManager_CustomThemeName', { Text = 'Custom theme name' })
 		themeGroupbox:AddDropdown('ThemeManager_CustomThemeList', { Text = 'Custom themes', Values = self:ReloadCustomThemes(), AllowNull = true, Default = 1 })
@@ -124,12 +131,27 @@ local ThemeManager = {} do
 			end
 		end)
 
-		backgroundGroupbox:AddLabel('Background color'):AddColorPicker('BackgroundColor', { Default = self.Library.BackgroundColor });
-		backgroundGroupbox:AddLabel('Main color')	:AddColorPicker('MainColor', { Default = self.Library.MainColor });
-		backgroundGroupbox:AddLabel('Accent color'):AddColorPicker('AccentColor', { Default = self.Library.AccentColor });
-		backgroundGroupbox:AddLabel('Outline color'):AddColorPicker('OutlineColor', { Default = self.Library.OutlineColor });
-		backgroundGroupbox:AddLabel('Text color')	:AddColorPicker('FontColor', { Default = self.Library.FontColor });
-		backgroundGroupbox:AddLabel('Risk Text color')	:AddColorPicker('RiskColor', { Default = self.Library.RiskColor });
+		backgroundGroupbox:AddToggle('BackgroundBlur', { Text = 'Enable Background Blur', Default = false, Tooltip = 'Enabling this will make the background blurry, which can help with visibility of the menu on some games.', 
+			Callback = function(value)
+				self.Library.UseBlur = value
+			end
+		})
+
+		backgroundGroupbox:AddSlider('BackgroundBlurStrength', { Text = 'Background Blur Strength', Default = 5, Min = 0, Max = 20, Rounding = 0.1, Tooltip = 'How strong the background blur should be (only works if Background Blur is enabled)', 
+			Callback = function(value)
+				self.Library.BlurStrength = value
+			end
+		})
+
+		backgroundGroupbox:AddDivider()
+
+		backgroundGroupbox:AddToggle('WireframeDragging', { Text = 'Enable Wireframe Dragging', Default = false, Tooltip = 'Enabling this will make the background wireframe when dragging the menu, which can improve performance on lower-end systems.', 
+			Callback = function(value)
+				self.Library.WireframeDragging = value
+			end
+		})
+		
+			
 
 		if type(onBuild) == 'function' then
 			onBuild(themeGroupbox, backgroundGroupbox)
